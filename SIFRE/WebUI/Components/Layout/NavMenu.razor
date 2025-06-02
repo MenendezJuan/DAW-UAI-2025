@@ -1,7 +1,7 @@
 ﻿@* Componente de menú colapsable *@
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">SISTEMA INTEGRADO DE FIDELIZACIÓN Y RECONOCIMIENTO DE EMPLEADOS</a>
+        <a class="navbar-brand" href="">SIFRE</a>
     </div>
 </div>
 
@@ -157,25 +157,6 @@
     </nav>
 </div>
 
-@code {
-    private bool[] menuStates = new bool[6];
-
-    protected override void OnInitialized()
-    {
-        // Inicializar todos los menús como cerrados
-        for (int i = 0; i < menuStates.Length; i++)
-        {
-            menuStates[i] = false;
-        }
-    }
-
-    private void ToggleMenu(int menuIndex)
-    {
-        menuStates[menuIndex] = !menuStates[menuIndex];
-        Console.WriteLine($"Menu {menuIndex} toggled to: {menuStates[menuIndex]}");
-    }
-}
-
 <style>
     .nav-menu-header {
         cursor: pointer;
@@ -279,4 +260,23 @@
             box-shadow: none;
             background: transparent;
         }
+    @code {
+        private bool[] menuStates = new bool[6];
+
+        protected override void OnInitialized()
+        {
+            // Inicializar todos los menús como cerrados
+            for (int i = 0; i < menuStates.Length; i++)
+            {
+                menuStates[i] = false;
+            }
+        }
+
+        private void ToggleMenu(int menuIndex)
+        {
+            menuStates[menuIndex] = !menuStates[menuIndex];
+            StateHasChanged(); // Añadir esta línea para forzar la actualización del componente
+            Console.WriteLine($"Menu {menuIndex} toggled to: {menuStates[menuIndex]}");
+        }
+    }
 </style>

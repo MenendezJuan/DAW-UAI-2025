@@ -1,0 +1,81 @@
+﻿@page "/"
+
+@using System.Collections.Generic
+@using System
+
+<h3>Historial de puntos</h3>
+
+<p><strong>Puntos:</strong> @totalPuntos</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Producto</th>
+            <th>Puntos</th>
+            <th>Fecha de transacción</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var transaction in transactions)
+        {
+            <tr>
+                <td>@transaction.Id</td>
+                <td>@transaction.User</td>
+                <td>@transaction.Product</td>
+                <td>@transaction.Points</td>
+                <td>@transaction.TransactionDate.ToString("dd/MM/yyyy")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<button class="btn btn-success" @onclick="Exportar">Exportar</button>
+
+@code {
+    private List<TransactionDTO> transactions = new List<TransactionDTO>
+    {
+        new TransactionDTO
+        {
+            Id = 1,
+            User = "Juan Pérez",
+            Product = "Producto A",
+            Points = 50,
+            TransactionDate = DateTime.Now.AddDays(-1)
+        },
+        new TransactionDTO
+        {
+            Id = 2,
+            User = "María López",
+            Product = "Producto B",
+            Points = 30,
+            TransactionDate = DateTime.Now.AddDays(-2)
+        },
+        new TransactionDTO
+        {
+            Id = 3,
+            User = "Carlos Sánchez",
+            Product = "Producto C",
+            Points = 100,
+            TransactionDate = DateTime.Now.AddDays(-3)
+        }
+    };
+
+    private long totalPuntos => transactions.Sum(t => t.Points);
+
+    private void Exportar()
+    {
+        // Lógica para exportar el historial de puntos, como un CSV o similar.
+        Console.WriteLine("Exportando...");
+    }
+
+    public class TransactionDTO
+    {
+        public int Id { get; set; }
+        public string User { get; set; }
+        public string Product { get; set; }
+        public long Points { get; set; }
+        public DateTime TransactionDate { get; set; }
+    }
+}
