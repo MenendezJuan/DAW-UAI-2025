@@ -1,0 +1,47 @@
+﻿# Compiled files
+bin/
+obj/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+*.userprefs
+*.csproj.user
+
+# Rider files
+.idea/
+
+# VS Code files
+.vscode/
+
+# Mac files
+.DS_Store
+
+# Logs
+*.log
+
+# Local Development Configurations
+appsettings.Development.json
+
+# Sensitive information
+*.secrets.json
+
+# Blazor Publish output
+publish/
+
+# DotNet specific
+*.dbmdl
+*.dbproj.schemaview
+*.pfx
+*.publishsettings
+node_modules/
+
+# Generated runtime files
+*_Generated.cs
+
+# Blazor-specific files
+dist/
+wwwroot/css/
+wwwroot/js/
+wwwroot/lib/
