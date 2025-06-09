@@ -6,6 +6,7 @@ using WebUI.Components;
 using Microsoft.Data.SqlClient;
 using System.Data;
 using DAL.Helper;
+using Infrastructure.Session;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -38,7 +39,9 @@ builder.Services.AddTransient<INominationRuleBLL, NominationRuleBLL>();
 builder.Services.AddTransient<INominationRuleDAL, NominationRuleDAL>();
 builder.Services.AddTransient<IObjectiveBLL, ObjectiveBLL>();
 builder.Services.AddTransient<IObjectiveDAL, ObjectiveDAL>();
-builder.Services.AddTransient<DatabaseHelper>();
+builder.Services.AddTransient<DatabaseHelper>(); 
+builder.Services.AddScoped<SingletonSession>();
+
 DatabaseHelper.Configure(builder.Configuration.GetConnectionString("DefaultConnection"));
 
 builder.Services.AddScoped<IDbConnection>(_ => new SqlConnection(connectionString));

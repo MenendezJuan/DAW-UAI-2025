@@ -1,7 +1,8 @@
 ﻿@page "/consultar-puntos"
-
-@using System.Collections.Generic
-@using System
+@using BE.DTO
+@using Infrastructure.Session
+@inject IPointBLL PointBLL
+@inject SingletonSession SingletonSession
 
 <h3>Historial de puntos</h3>
 
@@ -18,15 +19,18 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var transaction in transactions)
+        @if (transactions != null)
         {
-            <tr>
-                <td>@transaction.Id</td>
-                <td>@transaction.User</td>
-                <td>@transaction.Product</td>
-                <td>@transaction.Points</td>
-                <td>@transaction.TransactionDate.ToString("dd/MM/yyyy")</td>
-            </tr>
+            @foreach (var transaction in transactions)
+            {
+                <tr>
+                    <td>@transaction.Id</td>
+                    <td>@transaction.User</td>
+                    <td>@transaction.Product</td>
+                    <td>@transaction.Points</td>
+                    <td>@transaction.TransactionDate.ToString("dd/MM/yyyy")</td>
+                </tr>
+            }
         }
     </tbody>
 </table>
@@ -34,48 +38,21 @@
 <button class="btn btn-success" @onclick="Exportar">Exportar</button>
 
 @code {
-    private List<TransactionDTO> transactions = new List<TransactionDTO>
-    {
-        new TransactionDTO
-        {
-            Id = 1,
-            User = "Juan Pérez",
-            Product = "Producto A",
-            Points = 50,
-            TransactionDate = DateTime.Now.AddDays(-1)
-        },
-        new TransactionDTO
-        {
-            Id = 2,
-            User = "María López",
-            Product = "Producto B",
-            Points = 30,
-            TransactionDate = DateTime.Now.AddDays(-2)
-        },
-        new TransactionDTO
-        {
-            Id = 3,
-            User = "Carlos Sánchez",
-            Product = "Producto C",
-            Points = 100,
-            TransactionDate = DateTime.Now.AddDays(-3)
-        }
-    };
+    private IList<TransactionDTO> transactions;
+    private long totalPuntos;
 
-    private long totalPuntos => transactions.Sum(t => t.Points);
+    protected override void OnInitialized()
+    {
+        var userId = SingletonSession.Instancia.User.Id;
+
+        transactions = PointBLL.GetTransactions(false);
+        totalPuntos = PointBLL.GetPointsByUserId(userId);
+    }
 
     private void Exportar()
     {
-        // Lógica para exportar el historial de puntos, como un CSV o similar.
+        // Acá deberías adaptar la lógica del PdfExporter a Blazor (con js interop o descargando CSV/PDF).
         Console.WriteLine("Exportando...");
     }
-
-    public class TransactionDTO
-    {
-        public int Id { get; set; }
-        public string User { get; set; }
-        public string Product { get; set; }
-        public long Points { get; set; }
-        public DateTime TransactionDate { get; set; }
-    }
 }
+

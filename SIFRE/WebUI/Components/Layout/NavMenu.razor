@@ -1,4 +1,5 @@
-﻿@* Componente de menú colapsable *@
+﻿@using Infrastructure.Session
+@* Componente de menú colapsable *@
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">SIFRE</a>
@@ -150,9 +151,28 @@
             <NavLink class="nav-link" href="ayuda">
                 ❓ Ayuda
             </NavLink>
-            <NavLink class="nav-link" href="cerrar-sesion">
+            <NavLink class="nav-link" href="#" @onclick="ConfirmLogout">
                 🚪 Cerrar sesión
             </NavLink>
+            @if (showLogoutModal)
+            {
+                <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">¿Confirmar cierre de sesión?</h5>
+                            </div>
+                            <div class="modal-body">
+                                <p>¿Estás seguro de que querés cerrar sesión?</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-secondary" @onclick="CancelarLogout">Cancelar</button>
+                                <button class="btn btn-danger" @onclick="Logout">Cerrar sesión</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
         </div>
     </nav>
 </div>
@@ -287,4 +307,26 @@
             }
             StateHasChanged(); // Añadir esta línea para forzar la actualización del componente
         }
+
+    private bool showLogoutModal = false;
+
+    private void ConfirmLogout()
+    {
+        showLogoutModal = true;
     }
+
+    private void CancelarLogout()
+    {
+        showLogoutModal = false;
+    }
+
+    private void Logout()
+    {
+        SingletonSession.Instancia.Logout(); // tu lógica real
+        showLogoutModal = false;
+        NavigationManager.NavigateTo("/login", forceLoad: true);
+    }
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; }
+}
