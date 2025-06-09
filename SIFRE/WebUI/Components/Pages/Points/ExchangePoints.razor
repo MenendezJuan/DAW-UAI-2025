@@ -1,5 +1,122 @@
-﻿<h3>ExchangePoints</h3>
+﻿@page "/canjear-puntos"
+@using BE.DTO
+@using BE.Entities
+@using Infrastructure.Mappers
+@using Infrastructure.Session
+@inject IProductBLL ProductBLL
+@inject IPointBLL PointBLL
+@inject ILanguageBLL LanguageBLL
+@inject ILogBLL LogBLL
+@inject SingletonSession Session
+@inject IJSRuntime JS
+
+<h3 class="text-success fw-bold">Canjear puntos</h3>
+
+<div class="d-flex justify-content-between mb-3">
+    <label class="fw-bold text-success">Categoría:</label>
+    <label class="fw-bold text-success">Puntos: @userPoints</label>
+</div>
+
+<select class="form-select mb-3" @bind="selectedCategoryId">
+    <option value="">Seleccione una categoría</option>
+    @foreach (var c in categorias)
+    {
+        <option value="@c.Id">@c.Description</option>
+    }
+</select>
+
+@if (productosFiltrados?.Any() == true)
+{
+    <table class="table table-bordered table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>ID</th>
+                <th>Producto</th>
+                <th>Descripción</th>
+                <th>Puntos</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in productosFiltrados)
+            {
+                <tr>
+                    <td>@p.Id</td>
+                    <td>@p.ProductName</td>
+                    <td>@p.Description</td>
+                    <td>@p.Points</td>
+                    <td>
+                        <button class="btn btn-success btn-sm" @onclick="() => Canjear(p)">Canjear</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else if (selectedCategoryId != null)
+{
+    <p>No hay productos disponibles para esta categoría.</p>
+}
 
 @code {
+    private IList<ProductDTO> productos;
+    private IList<ProductDTO> productosFiltrados;
+    private IList<Category> categorias;
+    private int? selectedCategoryId
+    {
+        get => _selectedCategoryId;
+        set
+        {
+            _selectedCategoryId = value;
+            FiltrarProductos();
+        }
+    }
+    private int? _selectedCategoryId;
 
+    private void FiltrarProductos()
+    {
+        if (selectedCategoryId is null) return;
+
+        var categoria = categorias.FirstOrDefault(c => c.Id == selectedCategoryId);
+        productosFiltrados = productos
+            .Where(p => p.Category.Equals(categoria?.Description, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private long userPoints;
+
+    protected override void OnInitialized()
+    {
+        productos = ProductBLL.GetProducts(false, false);
+        categorias = ProductBLL.GetCategories().Where(c => c.Id != 4).ToList();
+        userPoints = PointBLL.GetPointsByUserId(SingletonSession.Instancia.User.Id);
+    }
+
+    private async Task Canjear(ProductDTO producto)
+    {
+        if (producto.Points > userPoints)
+        {
+            await JS.InvokeVoidAsync("alert", LanguageBLL.GetByLabel(SingletonSession.Instancia.User.LanguageId, "NO_POINTS_AVAILABLE") ?? "No posee la suficiente cantidad de puntos");
+            return;
+        }
+
+        var confirmacion = await JS.InvokeAsync<bool>("confirm", LanguageBLL.GetByLabel(SingletonSession.Instancia.User.LanguageId, "CONTINUE") ?? "¿Desea continuar?");
+        if (!confirmacion) return;
+
+        var puntosRestantes = PointBLL.ExchangePoints(producto.Id, userPoints);
+        SingletonSession.Instancia.User.Points = puntosRestantes;
+        userPoints = puntosRestantes;
+
+        await JS.InvokeVoidAsync("alert",
+            (LanguageBLL.GetByLabel(SingletonSession.Instancia.User.LanguageId, "POINTS_EXCHANGE_SUCCESS") ?? "Canje exitoso, puntos restantes:") + " " + puntosRestantes);
+
+        LogBLL.Save(new BE.Entities.Log
+        {
+            Message = $"Se canjearon puntos, saldo: {puntosRestantes}",
+            CreatedAt = DateTime.Now,
+                CreatedBy = UsersMapper.DtoToUser(SingletonSession.Instancia.User),
+            Type = BE.Entities.LogType.Info,
+            Module = "ExchangePoints"
+        });
+    }
 }
