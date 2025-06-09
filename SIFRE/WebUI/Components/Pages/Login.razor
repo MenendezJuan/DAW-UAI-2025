@@ -1,0 +1,120 @@
+﻿@using Infrastructure.Helpers
+@using Infrastructure.Interfaces.BLL
+@using Infrastructure.Mappers
+@using Infrastructure.Session
+@rendermode InteractiveServer
+@inject IUserBLL UserBLL
+@inject ILanguageBLL LanguageBLL
+@inject ICheckDigitBLL CheckDigitBLL
+@inject ILogBLL LogBLL
+@inject NavigationManager Navigation
+@page "/login"
+
+<div class="d-flex justify-content-center align-items-center vh-100 bg-light">
+    <div class="card shadow-lg p-4" style="width: 100%; max-width: 400px;">
+        <h4 class="text-center mb-4">🔐 Iniciar Sesión</h4>
+
+        <div class="form-group mb-3">
+            <label for="username" class="form-label">Usuario</label>
+            <input type="text" id="username" class="form-control" @bind="Username" placeholder="Ingresá tu usuario" />
+        </div>
+
+        <div class="form-group mb-4">
+            <label for="password" class="form-label">Contraseña</label>
+            <input type="password" id="password" class="form-control" @bind="Password" placeholder="Ingresá tu contraseña" />
+        </div>
+
+        <button class="btn btn-primary w-100" @onclick="PerformLogin">Iniciar Sesión</button>
+
+        @if (ShowError)
+        {
+            <div class="alert alert-danger mt-3 mb-0 text-center">
+                @ErrorMessage
+            </div>
+        }
+    </div>
+</div>
+
+
+@code {
+    private string Username { get; set; } = string.Empty;
+    private string Password { get; set; } = string.Empty;
+    private int Attempts { get; set; } = 0;
+    private bool ShowError { get; set; } = false;
+    private string ErrorMessage { get; set; } = string.Empty;
+
+    private async Task PerformLogin()
+    {
+        ShowError = false;
+
+        // Encriptar la contraseña
+        string encryptedPassword = EncryptionHelper.Encrypt(Password);
+
+        // Verificar usuario
+        var user = UserBLL.GetByUsernameAndPassword(Username, encryptedPassword);
+
+        if (user != null)
+        {
+            // Usuario autenticado correctamente
+            SingletonSession.Instancia.Login(user);
+            SingletonSession.Instancia.currentLanguage = LanguageBLL.GetById(user.LanguageId, true)!;
+
+            // Verificar inconsistencias
+            string messageError = string.Empty;
+            var tables = new List<string> { "Products", "Transactions", "PointTransfers" };
+
+            foreach (var table in tables)
+            {
+                string response = CheckDigitBLL.VerifyTable(table);
+                if (!string.IsNullOrEmpty(response))
+                {
+                    messageError = response;
+                    break;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(messageError))
+            {
+                if (SingletonSession.Instancia.User.UserRole.Name == "Administrador")
+                {
+                    // Redirigir a la página de gestión de inconsistencias
+                    Navigation.NavigateTo("/inconsistencies");
+                }
+                else
+                {
+                    ErrorMessage = "Error de inconsistencia de información, por favor comunícate con un administrador.";
+                    ShowError = true;
+                }
+
+                // Guardar log
+                LogBLL.Save(new BE.Entities.Log
+                {
+                    Message = messageError,
+                    CreatedAt = DateTime.Now,
+                    CreatedBy = UsersMapper.DtoToUser(SingletonSession.Instancia.User),
+                    Type = BE.Entities.LogType.Critical,
+                    Module = nameof(Login)
+                });
+            }
+            else
+            {
+                // Redirigir a la página principal
+                Navigation.NavigateTo("/");
+            }
+        }
+        else
+        {
+            // Usuario o contraseña incorrectos
+            Attempts++;
+            ErrorMessage = "Usuario y/o contraseña incorrectos.";
+            ShowError = true;
+
+            if (Attempts >= 3)
+            {
+                // Bloquear usuario
+                bool isBlocked = UserBLL.Block(Username);
+                ErrorMessage = isBlocked ? "Usuario bloqueado." : "Usuario y/o contraseña incorrectos.";
+            }
+        }
+    }
+}

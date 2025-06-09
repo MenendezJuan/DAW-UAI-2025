@@ -5,7 +5,7 @@
     </div>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+@rendermode InteractiveServer
 
 <div class="nav-scrollable">
     <nav class="flex-column">
@@ -260,23 +260,31 @@
             box-shadow: none;
             background: transparent;
         }
-    @code {
-        private bool[] menuStates = new bool[6];
+    
+</style>
+@code {
+        [Inject]
+        private ILogger<NavMenu> Logger { get; set; }
+        private bool[] menuStates = Array.Empty<bool>();
 
         protected override void OnInitialized()
         {
-            // Inicializar todos los menús como cerrados
+            Logger.LogInformation("Prueb2a");  
+            // Asignar cantidad según los menús que tengas
+            menuStates = new bool[7];
             for (int i = 0; i < menuStates.Length; i++)
             {
                 menuStates[i] = false;
             }
         }
 
+
         private void ToggleMenu(int menuIndex)
         {
-            menuStates[menuIndex] = !menuStates[menuIndex];
+            for (int i = 0; i < menuStates.Length; i++)
+            {
+                menuStates[i] = i == menuIndex ? !menuStates[i] : false;
+            }
             StateHasChanged(); // Añadir esta línea para forzar la actualización del componente
-            Console.WriteLine($"Menu {menuIndex} toggled to: {menuStates[menuIndex]}");
         }
     }
-</style>

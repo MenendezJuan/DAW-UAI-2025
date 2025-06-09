@@ -1,3 +1,76 @@
-﻿
+﻿@using BE.Enums
+@using Infrastructure.Session
+@inject NavigationManager Navigation
+@inject IUserBLL UserBLL
+@inject ILanguageBLL LanguageBLL
 
+@page "/"
 <PageTitle>Inicio</PageTitle>
+
+@if (!IsAuthenticated)
+{
+    <p>Redirigiendo al inicio de sesión...</p>
+}
+else
+{
+    <h3>Bienvenido, @Username</h3>
+
+    <div>
+        <h4>Opciones disponibles:</h4>
+        <ul>
+            @if (CanManageProfiles)
+            {
+                <li><a href="/manage-profiles">Gestionar Perfiles</a></li>
+            }
+            @if (CanViewReports)
+            {
+                <li><a href="/reports">Ver Reportes</a></li>
+            }
+            @if (CanManageProducts)
+            {
+                <li><a href="/manage-products">Gestionar Productos</a></li>
+            }
+            @if (CanViewPoints)
+            {
+                <li><a href="/points">Consultar Puntos</a></li>
+            }
+        </ul>
+    </div>
+}
+
+@code {
+    private bool IsAuthenticated { get; set; } = false;
+    private string Username { get; set; } = string.Empty;
+
+    // Permisos
+    private bool CanManageProfiles { get; set; } = false;
+    private bool CanViewReports { get; set; } = false;
+    private bool CanManageProducts { get; set; } = false;
+    private bool CanViewPoints { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Verificar si el usuario está autenticado
+        var session = SingletonSession.Instancia;
+
+        if (session.User == null)
+        {
+            // Redirigir al login si no hay sesión activa
+            Navigation.NavigateTo("/login", true);
+        }
+        else
+        {
+            IsAuthenticated = true;
+            Username = session.User.Username;
+
+            // Configurar permisos según el rol del usuario
+            CanManageProfiles = session.IsInRole(PermissionsType.GESTIONAR_PERFIL);
+            CanViewReports = session.IsInRole(PermissionsType.VER_REPORTERIA);
+            CanManageProducts = session.IsInRole(PermissionsType.GESTIONAR_PRODUCTOS);
+            CanViewPoints = session.IsInRole(PermissionsType.CONSULTAR_PUNTOS);
+
+            // Cargar idioma actual
+            // TODO: session.currentLanguage = await LanguageBLL.GetByIdAsync(session.User.LanguageId, true);
+        }
+    }
+}

@@ -1,12 +1,51 @@
+using Infrastructure.Interfaces.BLL;
+using Infrastructure.Interfaces.DAL;
+using BLL;
+using DAL;
 using WebUI.Components;
+using Microsoft.Data.SqlClient;
+using System.Data;
+using DAL.Helper;
 
 var builder = WebApplication.CreateBuilder(args);
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddTransient<IUserDAL, UserDAL>();
+builder.Services.AddTransient<IUserBLL, UserBLL>();
+builder.Services.AddTransient<ILanguageBLL, LanguageBLL>();
+builder.Services.AddTransient<ILanguageDAL, LanguageDAL>();
+builder.Services.AddTransient<ILogDAL, LogDAL>();
+builder.Services.AddTransient<ILogBLL, LogBLL>();
+builder.Services.AddTransient<IRoleBLL, RoleBLL>();
+builder.Services.AddTransient<IRoleDAL, RoleDAL>();
+builder.Services.AddTransient<IProductBLL, ProductBLL>();
+builder.Services.AddTransient<IProductDAL, ProductDAL>();
+builder.Services.AddTransient<IPointBLL, PointBLL>();
+builder.Services.AddTransient<IPointDAL, PointDAL>();
+builder.Services.AddTransient<IBackupBLL, BackupBLL>();
+builder.Services.AddTransient<IBackupDAL, BackupDAL>();
+builder.Services.AddTransient<ICheckDigitBLL, CheckDigitBLL>();
+builder.Services.AddTransient<ICheckDigitDAL, CheckDigitDAL>();
+builder.Services.AddTransient<INominationBLL, NominationBLL>();
+builder.Services.AddTransient<INominationDAL, NominationDAL>();
+builder.Services.AddTransient<IRecognitionCategoryBLL, RecognitionCategoryBLL>();
+builder.Services.AddTransient<IRecognitionCategoryDAL, RecognitionCategoryDAL>();
+builder.Services.AddTransient<INominationRuleBLL, NominationRuleBLL>();
+builder.Services.AddTransient<INominationRuleDAL, NominationRuleDAL>();
+builder.Services.AddTransient<IObjectiveBLL, ObjectiveBLL>();
+builder.Services.AddTransient<IObjectiveDAL, ObjectiveDAL>();
+builder.Services.AddTransient<DatabaseHelper>();
+DatabaseHelper.Configure(builder.Configuration.GetConnectionString("DefaultConnection"));
+
+builder.Services.AddScoped<IDbConnection>(_ => new SqlConnection(connectionString));
+
+
 var app = builder.Build();
+
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -23,5 +62,6 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+    
 
 app.Run();

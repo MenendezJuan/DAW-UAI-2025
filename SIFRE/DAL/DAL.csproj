@@ -11,6 +11,7 @@
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </None>
 	  <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+	  <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.5" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
   </ItemGroup>
 

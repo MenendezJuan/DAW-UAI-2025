@@ -7,11 +7,18 @@ namespace DAL.Helper
 {
     public class DatabaseHelper
     {
+        private static string? _globalConnectionString;
+
         private readonly string connectionString;
+
+        public static void Configure(string connectionStringFromWebUI)
+        {
+            _globalConnectionString = connectionStringFromWebUI;
+        }
 
         public DatabaseHelper()
         {
-            connectionString = GetConnectionString();
+            connectionString = _globalConnectionString ?? throw new InvalidOperationException("DatabaseHelper no fue configurado.");
         }
 
         public SqlConnection GetConnection()
@@ -23,6 +30,7 @@ namespace DAL.Helper
         private string GetConnectionString()
         {
             // Retorna la cadena de conexión desde App.Config
+
             return ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
         }
 

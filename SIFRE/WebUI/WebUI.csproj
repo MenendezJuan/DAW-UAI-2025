@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <EnableScopedCss>true</EnableScopedCss>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,7 +20,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Components\Login.razor" />
+    <None Include="Components\Pages\Login.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BE\BE.csproj" />
+    <ProjectReference Include="..\BLL\BLL.csproj" />
   </ItemGroup>
 
 </Project>
