@@ -1,12 +1,12 @@
-using Infrastructure.Interfaces.BLL;
-using Infrastructure.Interfaces.DAL;
 using BLL;
 using DAL;
-using WebUI.Components;
+using DAL.Helper;
+using Infrastructure.Interfaces.BLL;
+using Infrastructure.Interfaces.DAL;
+using Infrastructure.Session;
 using Microsoft.Data.SqlClient;
 using System.Data;
-using DAL.Helper;
-using Infrastructure.Session;
+using WebUI.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -15,6 +15,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddSingleton<PdfExportService>();
 builder.Services.AddTransient<IUserDAL, UserDAL>();
 builder.Services.AddTransient<IUserBLL, UserBLL>();
 builder.Services.AddTransient<ILanguageBLL, LanguageBLL>();
@@ -39,7 +40,7 @@ builder.Services.AddTransient<INominationRuleBLL, NominationRuleBLL>();
 builder.Services.AddTransient<INominationRuleDAL, NominationRuleDAL>();
 builder.Services.AddTransient<IObjectiveBLL, ObjectiveBLL>();
 builder.Services.AddTransient<IObjectiveDAL, ObjectiveDAL>();
-builder.Services.AddTransient<DatabaseHelper>(); 
+builder.Services.AddTransient<DatabaseHelper>();
 builder.Services.AddScoped<SingletonSession>();
 
 DatabaseHelper.Configure(builder.Configuration.GetConnectionString("DefaultConnection"));
@@ -65,6 +66,6 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-    
+
 
 app.Run();

@@ -1,6 +1,10 @@
-﻿@page "/consultar-puntos"
+﻿@rendermode InteractiveServer
+@page "/consultar-puntos"
 @using BE.DTO
+@using BLL
 @using Infrastructure.Session
+@inject PdfExportService PdfExportService
+@inject IJSRuntime JSRuntime
 @inject IPointBLL PointBLL
 @inject SingletonSession SingletonSession
 
@@ -38,21 +42,28 @@
 <button class="btn btn-success" @onclick="Exportar">Exportar</button>
 
 @code {
-    private IList<TransactionDTO> transactions;
+    private IList<TransactionDTO> transactions = new List<TransactionDTO>();
     private long totalPuntos;
 
     protected override void OnInitialized()
     {
-        var userId = SingletonSession.Instancia.User.Id;
-
-        transactions = PointBLL.GetTransactions(false);
-        totalPuntos = PointBLL.GetPointsByUserId(userId);
+        var data = PointBLL.GetTransactions(false);
+        transactions = data ?? new List<TransactionDTO>();
+        totalPuntos = 10000;
     }
 
-    private void Exportar()
+    private async Task Exportar()
     {
-        // Acá deberías adaptar la lógica del PdfExporter a Blazor (con js interop o descargando CSV/PDF).
-        Console.WriteLine("Exportando...");
+        if (transactions == null || !transactions.Any())
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "No hay transacciones para exportar.");
+            return;
+        }
+
+        var pdfBytes = PdfExportService.CrearReportePDF(transactions.ToList());
+        var base64 = Convert.ToBase64String(pdfBytes);
+        var date = DateTime.Now.ToString("yyyyMMddHHmmss");
+        await JSRuntime.InvokeVoidAsync("descargarArchivo", $"historial-puntos-{date}.pdf", base64);
     }
 }
 
