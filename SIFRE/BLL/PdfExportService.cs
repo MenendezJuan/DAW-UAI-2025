@@ -9,6 +9,7 @@ namespace BLL
     {
         public byte[] CrearReportePDF(List<TransactionDTO> transactions)
         {
+            QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
             return QuestPDF.Fluent.Document.Create(container =>
             {
                 container.Page(page =>
