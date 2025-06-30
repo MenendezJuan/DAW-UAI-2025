@@ -2,70 +2,55 @@
 using Infrastructure.Interfaces.DAL;
 using Microsoft.Data.SqlClient;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Data.SqlClient;
+using System.Data;
 
 namespace DAL
 {
     public class BackupDAL : IBackupDAL
     {
-        private String DefaultBackupPath { get; set; }
-        private readonly DatabaseHelper dbHelper;
+        private readonly DatabaseHelper helper;
+
         public BackupDAL()
         {
-            this.dbHelper = new DatabaseHelper();
-        }
-        private String GetBackupFileName(string databaseName, string path)
-        {
-            return $"{path}\\{databaseName}_{DateTime.Now:yyyyMMddHHmmss}.bak";
-        }
-
-        public void RestoreBackup(string path)
-        {
-            using (SqlConnection connection = this.dbHelper.GetConnection())
-            {
-                using (SqlCommand command = connection.CreateCommand())
-                {
-                    command.CommandType = System.Data.CommandType.Text;
-                    String setOfflineStatement = $"USE MASTER ALTER DATABASE {connection.Database} SET OFFLINE WITH ROLLBACK IMMEDIATE; ";
-                    String restoreStatement = $"RESTORE DATABASE {connection.Database} FROM DISK = '{path}' WITH REPLACE ";
-                    String setOnlineStatement = $"ALTER DATABASE {connection.Database} SET ONLINE WITH ROLLBACK IMMEDIATE;";
-                    command.CommandText = $"{setOfflineStatement}{restoreStatement}{setOnlineStatement}";
-                    command.ExecuteNonQuery();
-                }
-            }
+            helper = new DatabaseHelper();
         }
 
         public void CreateBackup(string path)
         {
-            using (SqlConnection connection = this.dbHelper.GetConnection())
+            var fileName = $"Backup_{DateTime.Now:yyyyMMdd_HHmmss}.bak";
+            var backupPath = System.IO.Path.Combine(path, fileName);
+
+            string sql = $@"
+                BACKUP DATABASE [DB_SIFRE] 
+                TO DISK = @BackupPath 
+                WITH FORMAT, INIT, NAME = 'Full Backup of DB_SIFRE';";
+
+            var parameters = new[]
             {
-                using (SqlCommand command = connection.CreateCommand())
-                {
-                    command.CommandType = System.Data.CommandType.Text;
-                    command.CommandText = $"BACKUP DATABASE {connection.Database} TO DISK = '{GetBackupFileName(connection.Database, path)}'";
-                    try
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                    catch (SqlException ex)
-                    {
-                        // If the database engine does not have write permissions on the requested folder, it will attempt to save the backup in the default folder.
-                        if (ex.Message.Contains("Cannot open backup device"))
-                        {
-                            command.CommandText = $"BACKUP DATABASE {connection.Database} TO DISK = '{GetBackupFileName(connection.Database, this.DefaultBackupPath)}'";
-                            command.ExecuteNonQuery();
-                        }
-                        else
-                        {
-                            throw ex;
-                        }
-                    }
-                }
-            }
+                new SqlParameter("@BackupPath", SqlDbType.NVarChar) { Value = backupPath }
+            };
+
+            helper.ExecuteNonQuery(sql, CommandType.Text, parameters);
+        }
+
+        public void RestoreBackup(string filePath)
+        {
+            // Desconectar usuarios activos antes de restaurar
+            string setSingleUser = "ALTER DATABASE [DB_SIFRE] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;";
+            string restore = @"
+                RESTORE DATABASE [DB_SIFRE] 
+                FROM DISK = @BackupPath 
+                WITH REPLACE;";
+            string setMultiUser = "ALTER DATABASE [DB_SIFRE] SET MULTI_USER;";
+
+            var param = new[]
+            {
+                new SqlParameter("@BackupPath", SqlDbType.NVarChar) { Value = filePath }
+            };
+
+            helper.ExecuteNonQuery(setSingleUser);
+            helper.ExecuteNonQuery(restore, CommandType.Text, param);
+            helper.ExecuteNonQuery(setMultiUser);
         }
     }
 }

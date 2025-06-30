@@ -1,0 +1,125 @@
+@page "/inconsistencias"
+@inject ICheckDigitBLL CheckDigitBLL
+@inject IBackupBLL BackupBLL
+@inject ILogBLL LogBLL
+@using BE.Entities
+@using Infrastructure.Mappers
+@using Infrastructure.Session
+@using Microsoft.AspNetCore.Components.Forms
+@inject IJSRuntime JS
+
+<h5 class="text-success fw-bold">Inconsistencias de base de datos:</h5>
+
+@if (Inconsistencias.Any())
+{
+    <ul class="text-success">
+        @foreach (var inconsistencia in Inconsistencias)
+        {
+            <li>[Tabla: @inconsistencia.TableName RegistroId: @inconsistencia.RecordId]</li>
+        }
+    </ul>
+
+    <div class="d-flex gap-3 mt-3">
+        <button class="btn btn-success fw-bold" @onclick="Recalcular">🔁 Recalcular</button>
+        <label class="btn btn-success fw-bold m-0">
+            📂 Restaurar
+            <InputFile OnChange="Restaurar" class="d-none" />
+        </label>
+    </div>
+}
+else
+{
+    <p class="text-success">✔ No se encontraron inconsistencias.</p>
+}
+
+@code {
+    private List<(string TableName, int RecordId)> Inconsistencias = new();
+
+    protected override void OnInitialized()
+    {
+        var tablas = new[] { "Products", "Transactions", "PointTransfers" };
+
+        foreach (var table in tablas)
+        {
+            var result = CheckDigitBLL.VerifyTable(table);
+
+            if (!string.IsNullOrWhiteSpace(result))
+            {
+                var inconsistencias = ParseInconsistencias(result, table);
+                Inconsistencias.AddRange(inconsistencias);
+            }
+        }
+    }
+
+    private List<(string TableName, int RecordId)> ParseInconsistencias(string raw, string table)
+    {
+        var lista = new List<(string TableName, int RecordId)>();
+        var partes = raw.Split('|', StringSplitOptions.RemoveEmptyEntries);
+
+        if (partes.Length >= 2)
+        {
+            string tableName = partes[2].Trim();
+            string registros = partes[1].Trim();
+
+            // Busca cualquier número en la segunda parte
+            var numeros = System.Text.RegularExpressions.Regex.Matches(registros, @"\d+")
+                .Select(m => int.TryParse(m.Value, out var id) ? id : -1)
+                .Where(id => id != -1);
+
+            foreach (var id in numeros)
+                lista.Add((tableName, id));
+        }
+
+        return lista;
+    }
+
+    private async Task Recalcular()
+    {
+        foreach (var inconsistencia in Inconsistencias)
+        {
+            CheckDigitBLL.RecalculateTable(inconsistencia.TableName, CheckDigitBLL.GetIdByTable(inconsistencia.TableName));
+        }
+
+        LogBLL.Save(new Log
+        {
+            Message = "Se recalcularon las tablas con inconsistencias. Requiere reingreso.",
+            CreatedAt = DateTime.Now,
+            CreatedBy = UsersMapper.DtoToUser(SingletonSession.Instancia?.User),
+            Type = LogType.Info,
+            Module = nameof(Recalcular)
+        });
+
+        await JS.InvokeVoidAsync("alert", "Se recalcularon las tablas. Vuelva a iniciar sesión.");
+    }
+
+    private async Task Restaurar(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+
+        if (!file.Name.EndsWith(".bak", StringComparison.OrdinalIgnoreCase))
+        {
+            await JS.InvokeVoidAsync("alert", "El formato del archivo debe ser .bak");
+            return;
+        }
+
+        var tempPath = Path.GetTempFileName();
+        await using var fs = File.Create(tempPath);
+        await file.OpenReadStream().CopyToAsync(fs);
+        fs.Close();
+
+        BackupBLL.RestoreBackup(tempPath);
+
+        LogBLL.Save(new Log
+        {
+            Message = "Se restauró la base de datos. Requiere reingreso.",
+            CreatedAt = DateTime.Now,
+            CreatedBy = UsersMapper.DtoToUser(SingletonSession.Instancia?.User),
+            Type = LogType.Info,
+            Module = nameof(Restaurar)
+        });
+
+        await JS.InvokeVoidAsync("alert", "La base de datos fue restaurada. Vuelva a iniciar sesión.");
+    }
+}
+@rendermode InteractiveServer
+@inject IJSRuntime JS

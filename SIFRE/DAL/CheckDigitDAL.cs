@@ -39,7 +39,8 @@ namespace DAL
                     string encryptedString = GetSHA256(concatenatedValues);
                     if (row["CheckDigitHorizontal"].ToString() != encryptedString)
                     {
-                        throw new Exception($"Data inconsistency detected in table: {tableName} | {concatenatedValues}");
+                        throw new Exception($"Inconsistencia detectada en tabla: {tableName} | Id: {row["Id"]}");
+                        //throw new Exception($"Data inconsistency detected in table: {tableName} | {concatenatedValues}");
                     }
                 }
             }
