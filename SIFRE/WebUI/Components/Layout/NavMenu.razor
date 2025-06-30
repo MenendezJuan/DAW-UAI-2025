@@ -1,156 +1,136 @@
-﻿@using Infrastructure.Session
-@* Componente de menú colapsable *@
+﻿@using BE.Enums
+@using Infrastructure.Session
+
+@rendermode InteractiveServer
+
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">SIFRE</a>
     </div>
 </div>
 
-@rendermode InteractiveServer
-
 <div class="nav-scrollable">
     <nav class="flex-column">
 
-        @* Menú Puntos *@
-        <div class="nav-item px-3">
-            <button class="nav-menu-header btn w-100 text-start" @onclick="() => ToggleMenu(0)" type="button">
-                <span class="nav-link menu-title">
-                    💰 Puntos
-                    <span class="chevron @(menuStates[0] ? "chevron-down" : "chevron-right")">▶</span>
-                </span>
-            </button>
-            <div class="nav-submenu @(menuStates[0] ? "show" : "")">
-                <NavLink class="nav-link submenu-item" href="consultar-puntos">
-                    🔍 Consultar puntos
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="canjear-puntos">
-                    🔄 Canjear puntos
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="transferir-puntos">
-                    📤 Transferir puntos
-                </NavLink>
+        @if (HasAnyPermission(new[] {
+            PermissionsType.CONSULTAR_PUNTOS,
+            PermissionsType.CANJEAR_PUNTOS
+        }))
+        {
+            <div class="nav-item px-3">
+                <button class="nav-menu-header btn w-100 text-start" @onclick="() => ToggleMenu(0)" type="button">
+                    <span class="nav-link menu-title">
+                        💰 Puntos
+                        <span class="chevron @(menuStates[0] ? "chevron-down" : "chevron-right")">▶</span>
+                    </span>
+                </button>
+                <div class="nav-submenu @(menuStates[0] ? "show" : "")">
+                    @if (HasPermission(PermissionsType.CONSULTAR_PUNTOS))
+                    {
+                        <NavLink class="nav-link submenu-item" href="consultar-puntos">
+                            🔍 Consultar puntos
+                        </NavLink>
+                    }
+                    @if (HasPermission(PermissionsType.CANJEAR_PUNTOS))
+                    {
+                        <NavLink class="nav-link submenu-item" href="canjear-puntos">
+                            🔄 Canjear puntos
+                        </NavLink>
+                    }
+                    @if (HasPermission(PermissionsType.CONSULTAR_PUNTOS))
+                    {
+                        <NavLink class="nav-link submenu-item" href="transferir-puntos">
+                            📤 Transferir puntos
+                        </NavLink>
+                    }
+                </div>
             </div>
-        </div>
+        }
 
-        @* Menú Catálogo *@
-        <div class="nav-item px-3">
-            <button class="nav-menu-header btn w-100 text-start" @onclick="() => ToggleMenu(1)" type="button">
-                <span class="nav-link menu-title">
-                    📋 Catálogo
-                    <span class="chevron @(menuStates[1] ? "chevron-down" : "chevron-right")">▶</span>
-                </span>
-            </button>
-            <div class="nav-submenu @(menuStates[1] ? "show" : "")">
-                <NavLink class="nav-link submenu-item" href="ver-productos">
-                    📦 Ver productos
-                </NavLink>
+        @if (HasPermission(PermissionsType.VER_PRODUCTOS))
+        {
+            <div class="nav-item px-3">
+                <button class="nav-menu-header btn w-100 text-start" @onclick="() => ToggleMenu(1)" type="button">
+                    <span class="nav-link menu-title">
+                        📋 Catálogo
+                        <span class="chevron @(menuStates[1] ? "chevron-down" : "chevron-right")">▶</span>
+                    </span>
+                </button>
+                <div class="nav-submenu @(menuStates[1] ? "show" : "")">
+                    <NavLink class="nav-link submenu-item" href="ver-productos">
+                        📦 Ver productos
+                    </NavLink>
+                </div>
             </div>
-        </div>
+        }
 
-        @* Menú Reporterías *@
-        <div class="nav-item px-3">
-            <button class="nav-menu-header btn w-100 text-start" @onclick="() => ToggleMenu(2)" type="button">
-                <span class="nav-link menu-title">
-                    📊 Reporterías
-                    <span class="chevron @(menuStates[2] ? "chevron-down" : "chevron-right")">▶</span>
-                </span>
-            </button>
-            <div class="nav-submenu @(menuStates[2] ? "show" : "")">
-                <NavLink class="nav-link submenu-item" href="bitacora-eventos">
-                    📅 Bitácora eventos
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="bitacora-productos">
-                    📦 Bitácora productos
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="bitacora-reconocimientos">
-                    🏆 Bitácora de reconocimientos
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="bitacora-objetivos">
-                    🎯 Bitácora de objetivos
-                </NavLink>
+        @if (HasAnyPermission(new[] {
+            PermissionsType.VER_REPORTERIA
+        }))
+        {
+            <div class="nav-item px-3">
+                <button class="nav-menu-header btn w-100 text-start" @onclick="() => ToggleMenu(2)" type="button">
+                    <span class="nav-link menu-title">
+                        📊 Reporterías
+                        <span class="chevron @(menuStates[2] ? "chevron-down" : "chevron-right")">▶</span>
+                    </span>
+                </button>
+                <div class="nav-submenu @(menuStates[2] ? "show" : "")">
+                    @if (HasPermission(PermissionsType.VER_REPORTERIA))
+                    {
+                        <NavLink class="nav-link submenu-item" href="bitacora-eventos">
+                            📅 Bitácora eventos
+                        </NavLink>
+                        <NavLink class="nav-link submenu-item" href="bitacora-productos">
+                            📦 Bitácora productos
+                        </NavLink>
+                    }
+                    @*<NavLink class="nav-link submenu-item" href="bitacora-reconocimientos">
+                        🏆 Bitácora de reconocimientos
+                    </NavLink>
+                    <NavLink class="nav-link submenu-item" href="bitacora-objetivos">
+                        🎯 Bitácora de objetivos
+                    </NavLink>*@
+                </div>
             </div>
-        </div>
+        }
 
-        @* Menú Configuración *@
-        <div class="nav-item px-3">
-            <button class="nav-menu-header btn w-100 text-start" @onclick="() => ToggleMenu(3)" type="button">
-                <span class="nav-link menu-title">
-                    ⚙️ Configuración
-                    <span class="chevron @(menuStates[3] ? "chevron-down" : "chevron-right")">▶</span>
-                </span>
-            </button>
-            <div class="nav-submenu @(menuStates[3] ? "show" : "")">
-                <NavLink class="nav-link submenu-item" href="gestionar-perfiles">
-                    👥 Gestionar perfiles
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="gestionar-idioma">
-                    🌐 Gestionar idioma
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="gestionar-productos">
-                    🛒 Gestionar productos
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="gestionar-backup">
-                    💾 Gestionar Backup
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="reglas-nominacion">
-                    📝 Personalizar reglas de nominación
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="categorias-reconocimiento">
-                    🏷️ Categorías reconocimiento
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="politicas-recompensa">
-                    ⚖️ Políticas de recompensa
-                </NavLink>
+        @if (HasAnyPermission(new[] {
+            PermissionsType.GESTIONAR_PRODUCTOS,
+            PermissionsType.GESTIONAR_BACKUP
+        }))
+        {
+            <div class="nav-item px-3">
+                <button class="nav-menu-header btn w-100 text-start" @onclick="() => ToggleMenu(3)" type="button">
+                    <span class="nav-link menu-title">
+                        ⚙️ Configuración
+                        <span class="chevron @(menuStates[3] ? "chevron-down" : "chevron-right")">▶</span>
+                    </span>
+                </button>
+                <div class="nav-submenu @(menuStates[3] ? "show" : "")">
+                    @*<NavLink class="nav-link submenu-item" href="gestionar-perfiles">
+                        👥 Gestionar perfiles
+                    </NavLink>
+                    <NavLink class="nav-link submenu-item" href="gestionar-idioma">
+                        🌐 Gestionar idioma
+                    </NavLink>*@
+                    @if (HasPermission(PermissionsType.GESTIONAR_PRODUCTOS))
+                    {
+                        <NavLink class="nav-link submenu-item" href="gestionar-productos">
+                            🛒 Gestionar productos
+                        </NavLink>
+                    }
+                    @if (HasPermission(PermissionsType.GESTIONAR_BACKUP))
+                    {
+                        <NavLink class="nav-link submenu-item" href="gestionar-backup">
+                            💾 Gestionar Backup
+                        </NavLink>
+                    }
+                </div>
             </div>
-        </div>
+        }
 
-        @* Menú Reconocimientos *@
         <div class="nav-item px-3">
-            <button class="nav-menu-header btn w-100 text-start" @onclick="() => ToggleMenu(4)" type="button">
-                <span class="nav-link menu-title">
-                    🏅 Reconocimientos
-                    <span class="chevron @(menuStates[4] ? "chevron-down" : "chevron-right")">▶</span>
-                </span>
-            </button>
-            <div class="nav-submenu @(menuStates[4] ? "show" : "")">
-                <NavLink class="nav-link submenu-item" href="nominar-colaborador">
-                    ➕ Nominar a un colaborador
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="revisar-nominaciones">
-                    👁️ Revisar nominaciones pendientes
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="estado-nominaciones">
-                    📋 Consultar estado de nominaciones
-                </NavLink>
-            </div>
-        </div>
-
-        @* Menú Objetivos *@
-        <div class="nav-item px-3">
-            <button class="nav-menu-header btn w-100 text-start" @onclick="() => ToggleMenu(5)" type="button">
-                <span class="nav-link menu-title">
-                    🎯 Objetivos
-                    <span class="chevron @(menuStates[5] ? "chevron-down" : "chevron-right")">▶</span>
-                </span>
-            </button>
-            <div class="nav-submenu @(menuStates[5] ? "show" : "")">
-                <NavLink class="nav-link submenu-item" href="crear-objetivos">
-                    ➕ Crear objetivos
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="consultar-objetivos">
-                    🔍 Consultar objetivos asignados
-                </NavLink>
-                <NavLink class="nav-link submenu-item" href="evaluar-cumplimiento">
-                    ✅ Evaluar cumplimiento
-                </NavLink>
-            </div>
-        </div>
-
-        @* Enlaces directos *@
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="ayuda">
-                ❓ Ayuda
-            </NavLink>
             <NavLink class="nav-link" href="#" @onclick="ConfirmLogout">
                 🚪 Cerrar sesión
             </NavLink>
@@ -177,156 +157,37 @@
     </nav>
 </div>
 
-<style>
-    .nav-menu-header {
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-        border: none;
-        background: transparent;
-        padding: 0;
-    }
-
-        .nav-menu-header:hover {
-            background-color: rgba(255, 255, 255, 0.1) !important;
-            border-radius: 4px;
-        }
-
-        .nav-menu-header:focus {
-            box-shadow: none;
-            outline: none;
-        }
-
-    .menu-title {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.5rem 0.75rem;
-        font-weight: 500;
-        color: #fff;
-        text-decoration: none;
-        width: 100%;
-        border: none;
-        background: transparent;
-    }
-
-        .menu-title:hover {
-            color: #fff;
-            text-decoration: none;
-        }
-
-    .nav-submenu {
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.3s ease-in-out, padding 0.3s ease;
-        background-color: rgba(0, 0, 0, 0.1);
-        border-left: 3px solid transparent;
-    }
-
-        .nav-submenu.show {
-            max-height: 500px;
-            padding: 0.25rem 0;
-            border-left-color: #007bff;
-        }
-
-    .submenu-item {
-        padding: 0.5rem 0.75rem 0.5rem 2rem !important;
-        margin: 0.1rem 0;
-        font-size: 0.9rem;
-        transition: all 0.2s ease;
-        border-radius: 0 15px 15px 0;
-        margin-right: 0.5rem;
-        display: block;
-    }
-
-        .submenu-item:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            transform: translateX(5px);
-        }
-
-        .submenu-item.active {
-            background-color: #007bff;
-            color: #fff !important;
-            font-weight: 500;
-        }
-
-    .chevron {
-        float: right;
-        transition: transform 0.3s ease;
-        font-size: 0.8rem;
-        display: inline-block;
-    }
-
-    .chevron-down {
-        transform: rotate(90deg);
-    }
-
-    .chevron-right {
-        transform: rotate(0deg);
-    }
-
-    /* Evitar que el botón tenga estilos de Bootstrap por defecto */
-    .nav-menu-header.btn {
-        color: inherit;
-        border: none;
-        padding: 0;
-        background: transparent;
-    }
-
-        .nav-menu-header.btn:hover,
-        .nav-menu-header.btn:focus,
-        .nav-menu-header.btn:active {
-            color: inherit;
-            border: none;
-            box-shadow: none;
-            background: transparent;
-        }
-    
-</style>
 @code {
-        [Inject]
-        private ILogger<NavMenu> Logger { get; set; }
-        private bool[] menuStates = Array.Empty<bool>();
+    [Inject] private NavigationManager NavigationManager { get; set; }
+    [Inject] private ILogger<NavMenu> Logger { get; set; }
 
-        protected override void OnInitialized()
-        {
-            Logger.LogInformation("Prueb2a");  
-            // Asignar cantidad según los menús que tengas
-            menuStates = new bool[7];
-            for (int i = 0; i < menuStates.Length; i++)
-            {
-                menuStates[i] = false;
-            }
-        }
-
-
-        private void ToggleMenu(int menuIndex)
-        {
-            for (int i = 0; i < menuStates.Length; i++)
-            {
-                menuStates[i] = i == menuIndex ? !menuStates[i] : false;
-            }
-            StateHasChanged(); // Añadir esta línea para forzar la actualización del componente
-        }
-
+    private bool[] menuStates = new bool[7];
     private bool showLogoutModal = false;
 
-    private void ConfirmLogout()
+    private void ToggleMenu(int index)
     {
-        showLogoutModal = true;
+        for (int i = 0; i < menuStates.Length; i++)
+        {
+            menuStates[i] = i == index ? !menuStates[i] : false;
+        }
     }
 
-    private void CancelarLogout()
-    {
-        showLogoutModal = false;
-    }
+    private void ConfirmLogout() => showLogoutModal = true;
+    private void CancelarLogout() => showLogoutModal = false;
 
     private void Logout()
     {
-        SingletonSession.Instancia.Logout(); // tu lógica real
-        showLogoutModal = false;
-        NavigationManager.NavigateTo("/login", forceLoad: true);
+        SingletonSession.Instancia.Logout();
+        NavigationManager.NavigateTo("/login", true);
     }
 
-    [Inject]
-    private NavigationManager NavigationManager { get; set; }
+    private bool HasPermission(PermissionsType perm)
+    {
+        return SingletonSession.Instancia.User != null && SingletonSession.Instancia?.IsInRole(perm) == true;
+    }
+
+    private bool HasAnyPermission(PermissionsType[] perms)
+    {
+        return SingletonSession.Instancia.User != null && perms.Any(p => SingletonSession.Instancia.IsInRole(p));
+    }
 }

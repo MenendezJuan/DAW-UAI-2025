@@ -1,41 +1,47 @@
 ﻿@page "/consultar-puntos"
 @using BE.DTO
+@using BE.Enums
 @using Infrastructure.Session
+
+@rendermode InteractiveServer
 @inject IPointBLL PointBLL
 @inject SingletonSession SingletonSession
 
-<h3>Historial de puntos</h3>
+<RoleGuard RequiredPermissions="@(new[] { PermissionsType.CONSULTAR_PUNTOS })">
+    <h3>Historial de puntos</h3>
 
-<p><strong>Puntos:</strong> @totalPuntos</p>
+    <p><strong>Puntos:</strong> @totalPuntos</p>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Usuario</th>
-            <th>Producto</th>
-            <th>Puntos</th>
-            <th>Fecha de transacción</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (transactions != null)
-        {
-            @foreach (var transaction in transactions)
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Producto</th>
+                <th>Puntos</th>
+                <th>Fecha de transacción</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (transactions != null)
             {
-                <tr>
-                    <td>@transaction.Id</td>
-                    <td>@transaction.User</td>
-                    <td>@transaction.Product</td>
-                    <td>@transaction.Points</td>
-                    <td>@transaction.TransactionDate.ToString("dd/MM/yyyy")</td>
-                </tr>
+                @foreach (var transaction in transactions)
+                {
+                    <tr>
+                        <td>@transaction.Id</td>
+                        <td>@transaction.User</td>
+                        <td>@transaction.Product</td>
+                        <td>@transaction.Points</td>
+                        <td>@transaction.TransactionDate.ToString("dd/MM/yyyy")</td>
+                    </tr>
+                }
             }
-        }
-    </tbody>
-</table>
+        </tbody>
+    </table>
 
-<button class="btn btn-success" @onclick="Exportar">Exportar</button>
+    <button class="btn btn-success" @onclick="Exportar">Exportar</button>
+
+</RoleGuard>
 
 @code {
     private IList<TransactionDTO> transactions;
@@ -43,10 +49,13 @@
 
     protected override void OnInitialized()
     {
-        var userId = SingletonSession.Instancia.User.Id;
+        if (SingletonSession.Instancia?.User != null && SingletonSession.Instancia.IsInRole(PermissionsType.CONSULTAR_PUNTOS))
+        {
+            var userId = SingletonSession.Instancia.User.Id;
 
-        transactions = PointBLL.GetTransactions(false);
-        totalPuntos = PointBLL.GetPointsByUserId(userId);
+            transactions = PointBLL.GetTransactions(false);
+            totalPuntos = PointBLL.GetPointsByUserId(userId);
+        }
     }
 
     private void Exportar()
@@ -55,4 +64,3 @@
         Console.WriteLine("Exportando...");
     }
 }
-

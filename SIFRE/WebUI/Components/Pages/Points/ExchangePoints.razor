@@ -1,8 +1,10 @@
 ﻿@page "/canjear-puntos"
 @using BE.DTO
 @using BE.Entities
+@using BE.Enums
 @using Infrastructure.Mappers
 @using Infrastructure.Session
+@rendermode InteractiveServer
 @inject IProductBLL ProductBLL
 @inject IPointBLL PointBLL
 @inject ILanguageBLL LanguageBLL
@@ -10,6 +12,7 @@
 @inject SingletonSession Session
 @inject IJSRuntime JS
 
+<RoleGuard RequiredPermissions="@(new[] { PermissionsType.CANJEAR_PUNTOS })">
 <h3 class="text-success fw-bold">Canjear puntos</h3>
 
 <div class="d-flex justify-content-between mb-3">
@@ -57,7 +60,7 @@ else if (selectedCategoryId != null)
 {
     <p>No hay productos disponibles para esta categoría.</p>
 }
-
+</RoleGuard>
 @code {
     private IList<ProductDTO> productos;
     private IList<ProductDTO> productosFiltrados;
@@ -87,9 +90,12 @@ else if (selectedCategoryId != null)
 
     protected override void OnInitialized()
     {
-        productos = ProductBLL.GetProducts(false, false);
-        categorias = ProductBLL.GetCategories().Where(c => c.Id != 4).ToList();
-        userPoints = PointBLL.GetPointsByUserId(SingletonSession.Instancia.User.Id);
+        if (SingletonSession.Instancia?.User != null && SingletonSession.Instancia.IsInRole(PermissionsType.CANJEAR_PUNTOS))
+        {
+            productos = ProductBLL.GetProducts(false, false);
+            categorias = ProductBLL.GetCategories().Where(c => c.Id != 4).ToList();
+            userPoints = PointBLL.GetPointsByUserId(SingletonSession.Instancia.User.Id);
+        }
     }
 
     private async Task Canjear(ProductDTO producto)

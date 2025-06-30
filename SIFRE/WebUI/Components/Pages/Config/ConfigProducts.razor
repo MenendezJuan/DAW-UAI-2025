@@ -1,0 +1,208 @@
+@page "/gestionar-productos"
+@using BE.DTO
+@using BE.Entities
+@using BE.Enums
+@inject IProductBLL ProductBLL
+@inject ILanguageBLL LanguageBLL
+@inject ILogBLL LogBLL
+@using Infrastructure.Mappers
+@using Infrastructure.Session
+@rendermode InteractiveServer
+@using WebUI.Components
+
+<RoleGuard RequiredPermissions="@(new[] { PermissionsType.GESTIONAR_PRODUCTOS })">
+
+    <h3>Gestión de productos:</h3>
+
+    @if (!string.IsNullOrEmpty(AlertMessage))
+    {
+        <div class="alert @AlertCss">@AlertMessage</div>
+    }
+
+    <div class="row mb-3">
+        <div class="col">
+            <label>Nombre:</label>
+            <input class="form-control" @bind="ProductName" />
+        </div>
+        <div class="col">
+            <label>Descripción:</label>
+            <input class="form-control" @bind="Description" />
+        </div>
+        <div class="col">
+            <label>Puntos:</label>
+            <input class="form-control" type="number" min="0" @bind="Points" />
+        </div>
+        <div class="col">
+            <label>Categoría:</label>
+            <select class="form-select" @bind="SelectedCategory">
+                <option value="">-- Seleccionar --</option>
+                @foreach (var cat in Categories)
+                {
+                    <option value="@cat.Description">@cat.Description</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <button class="btn btn-success me-2" @onclick="AddProduct">Agregar</button>
+        <button class="btn btn-danger" @onclick="DisableProduct" disabled="@(!ProductSelected)">Deshabilitar</button>
+    </div>
+
+    <hr />
+
+    <h5>Productos</h5>
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Puntos</th>
+                <th>Categoría</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Products)
+            {
+                <tr class="@(SelectedProduct?.Id == p.Id ? "table-active" : "")" @onclick="() => SelectProduct(p)">
+                    <td>@p.ProductName</td>
+                    <td>@p.Description</td>
+                    <td>@p.Points</td>
+                    <td>@p.Category</td>
+                    <td>@(p.StartDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                    <td>@(p.EndDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+</RoleGuard>
+
+@code {
+    private List<ProductDTO> Products = new();
+    private List<Category> Categories = new();
+    private ProductDTO? SelectedProduct;
+
+    private string? ProductName;
+    private string? Description;
+    private long Points;
+    private string? SelectedCategory;
+
+    private string? AlertMessage;
+    private string AlertCss = "alert-success";
+
+    private bool ProductSelected => SelectedProduct is not null;
+
+    protected override void OnInitialized()
+    {
+        Categories = ProductBLL.GetCategories().ToList();
+        LoadProducts();
+    }
+
+    private void LoadProducts()
+    {
+        Products = ProductBLL.GetProducts(false).ToList();
+    }
+
+    private void SelectProduct(ProductDTO product)
+    {
+        SelectedProduct = product;
+    }
+
+    private void AddProduct()
+    {
+        AlertMessage = null;
+
+        if (string.IsNullOrWhiteSpace(ProductName) || string.IsNullOrWhiteSpace(Description) || Points <= 0 || string.IsNullOrWhiteSpace(SelectedCategory))
+        {
+            AlertMessage = "Todos los campos son obligatorios.";
+            AlertCss = "alert-danger";
+            return;
+        }
+
+        var newProduct = new ProductDTO
+        {
+            ProductName = ProductName,
+            Description = Description,
+            Points = Points,
+            Category = SelectedCategory
+        };
+
+        int id = ProductBLL.AddProduct(newProduct);
+
+        LogBLL.Save(new Log
+        {
+            Message = $"Se agregó el producto: {newProduct.ProductName}",
+            CreatedAt = DateTime.Now,
+            CreatedBy = UsersMapper.DtoToUser(SingletonSession.Instancia.User),
+            Type = LogType.Info,
+            Module = "FrmAddProduct"
+        });
+
+        LogBLL.Save(new ProductLog
+        {
+            ProductName = newProduct.ProductName,
+            ProductId = id,
+            Description = newProduct.Description,
+            Points = newProduct.Points,
+            Category = newProduct.Category,
+            StartDate = DateTime.Now,
+            IsBlocked = false
+        });
+
+        ClearForm();
+        LoadProducts();
+        AlertMessage = "Se dio de alta el producto.";
+        AlertCss = "alert-success";
+    }
+
+    private void DisableProduct()
+    {
+        if (SelectedProduct == null)
+            return;
+
+        if(SelectedProduct.EndDate.HasValue && SelectedProduct.EndDate.Value < DateTime.Now)
+        {
+            AlertMessage = "El producto ya está deshabilitado.";
+            AlertCss = "alert-warning";
+            return;
+        }
+
+        ProductBLL.DeleteProduct(SelectedProduct.Id);
+
+        LogBLL.Save(new Log
+        {
+            Message = $"Se deshabilitó el producto: {SelectedProduct.ProductName}",
+            CreatedAt = DateTime.Now,
+            CreatedBy = UsersMapper.DtoToUser(SingletonSession.Instancia.User),
+            Type = LogType.Info,
+            Module = "FrmAddProduct"
+        });
+
+        LogBLL.Save(new ProductLog
+        {
+            ProductName = SelectedProduct.ProductName,
+            ProductId = SelectedProduct.Id,
+            Description = SelectedProduct.Description,
+            Points = SelectedProduct.Points,
+            Category = SelectedProduct.Category,
+            StartDate = SelectedProduct.StartDate ?? DateTime.Now,
+            IsBlocked = true
+        });
+
+        SelectedProduct = null;
+        LoadProducts();
+        AlertMessage = "Producto deshabilitado correctamente.";
+        AlertCss = "alert-warning";
+    }
+
+    private void ClearForm()
+    {
+        ProductName = string.Empty;
+        Description = string.Empty;
+        Points = 0;
+        SelectedCategory = null;
+    }
+}

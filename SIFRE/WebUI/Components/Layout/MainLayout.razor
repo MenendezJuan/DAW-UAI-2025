@@ -1,8 +1,9 @@
-﻿@inherits LayoutComponentBase
+﻿@using Infrastructure.Session
+@inherits LayoutComponentBase
 @inject NavigationManager Navigation
 
 <div class="page">
-        @if (!IsLoginPage)
+        @if (!IsLoginPage && IsAuthenticated)
         {
     <div class="sidebar">
             <NavMenu />
@@ -24,6 +25,9 @@
 </div>
 
 @code {
+
+    private bool IsAuthenticated =>
+        SingletonSession.Instancia?.User != null;
     private bool IsLoginPage =>
         Navigation.Uri.Contains("/login", StringComparison.OrdinalIgnoreCase);
-}
+}   

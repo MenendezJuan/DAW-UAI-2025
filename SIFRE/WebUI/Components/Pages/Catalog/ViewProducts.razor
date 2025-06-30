@@ -1,49 +1,52 @@
 ﻿@page "/ver-productos"
+@rendermode InteractiveServer
 @using BE.DTO
-@using Infrastructure.Session
+@using BE.Enums
+@using WebUI.Components
 @inject IProductBLL ProductBLL
-@inject SingletonSession SingletonSession
 
-<h3>📦 Productos disponibles</h3>
+<RoleGuard RequiredPermissions="@(new[] { PermissionsType.VER_PRODUCTOS })">
+    <h3>📦 Productos disponibles</h3>
 
-@if (products is null)
-{
-    <p>Cargando productos...</p>
-}
-else if (!products.Any())
-{
-    <p>No hay productos disponibles.</p>
-}
-else
-{
-    <table class="table table-hover table-striped align-middle">
-        <thead class="table-dark">
-            <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Descripción</th>
-                <th>Categoría</th>
-                <th>Puntos</th>
-                <th>Inicio</th>
-                <th>Fin</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var product in products)
-            {
+    @if (products is null)
+    {
+        <p>Cargando productos...</p>
+    }
+    else if (!products.Any())
+    {
+        <p>No hay productos disponibles.</p>
+    }
+    else
+    {
+        <table class="table table-hover table-striped align-middle">
+            <thead class="table-dark">
                 <tr>
-                    <td>@product.Id</td>
-                    <td>@product.ProductName</td>
-                    <td>@product.Description</td>
-                    <td>@product.Category</td>
-                    <td>@product.Points</td>
-                    <td>@(product.StartDate?.ToString("dd/MM/yyyy") ?? "-")</td>
-                    <td>@(product.EndDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Categoría</th>
+                    <th>Puntos</th>
+                    <th>Inicio</th>
+                    <th>Fin</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-}
+            </thead>
+            <tbody>
+                @foreach (var product in products)
+                {
+                    <tr>
+                        <td>@product.Id</td>
+                        <td>@product.ProductName</td>
+                        <td>@product.Description</td>
+                        <td>@product.Category</td>
+                        <td>@product.Points</td>
+                        <td>@(product.StartDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                        <td>@(product.EndDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</RoleGuard>
 
 @code {
     private IList<ProductDTO> products;

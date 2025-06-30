@@ -1,0 +1,42 @@
+@using Infrastructure.Session
+@using BE.Enums
+@inject SingletonSession SingletonSession
+@inject NavigationManager Navigation
+
+@if (IsAuthorized)
+{
+    @ChildContent
+}
+else if (checkedAccess)
+{
+<div class="d-flex justify-content-center align-items-center vh-100 bg-light">
+    <div class="card shadow-lg p-4" style="width: 100%; max-width: 400px;">
+        <h4 class="text-center mb-4 text-danger">🚫 Acceso denegado</h4>
+
+        <p class="text-center">No tenés los permisos necesarios para acceder a esta sección.</p>
+
+        <button class="btn btn-secondary w-100 mt-3" @onclick="GoHome">Volver al inicio</button>
+    </div>
+</div>
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public PermissionsType[] RequiredPermissions { get; set; } = [];
+    
+    private bool IsAuthorized = false;
+    private bool checkedAccess = false;
+    private void GoHome()
+    {
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+    protected override void OnInitialized()
+    {
+        if (SingletonSession.Instancia?.User != null)
+        {
+            IsAuthorized = RequiredPermissions.All(p => SingletonSession.Instancia.IsInRole(p));
+        }
+
+        checkedAccess = true;
+    }
+}
