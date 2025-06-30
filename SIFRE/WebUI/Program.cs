@@ -15,7 +15,6 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddSingleton<PdfExportService>();
 builder.Services.AddTransient<IUserDAL, UserDAL>();
 builder.Services.AddTransient<IUserBLL, UserBLL>();
 builder.Services.AddTransient<ILanguageBLL, LanguageBLL>();

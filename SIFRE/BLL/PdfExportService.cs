@@ -5,9 +5,9 @@ namespace BLL
 {
 
 
-    public class PdfExportService
+    public static class PdfExportService
     {
-        public byte[] CrearReportePDF(List<TransactionDTO> transactions)
+        public static byte[] CrearReportePDF(List<TransactionDTO> transactions)
         {
             QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
             return QuestPDF.Fluent.Document.Create(container =>
