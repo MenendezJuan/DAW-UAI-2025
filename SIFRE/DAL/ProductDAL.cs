@@ -29,7 +29,9 @@ namespace DAL
             {
                 var categories = GetCategories();
                 var category = categories.FirstOrDefault(x => x.Description == productDTO.Category);
-                string query = $@"Insert into Products (ProductName, Description, StartDate, Points, CategoryId) values (@ProductName, @Description, @StartDate, @Points, @CategoryId); SELECT SCOPE_IDENTITY();";
+                string query = $@"INSERT INTO Products (ProductName, Description, StartDate, Points, CategoryId) 
+                                  VALUES (@ProductName, @Description, @StartDate, @Points, @CategoryId); 
+                                  SELECT SCOPE_IDENTITY();";
                 SqlParameter[] parameters = new SqlParameter[]
                 {
                     new SqlParameter("@StartDate", SqlDbType.DateTime) { Value = DateTime.Now },
@@ -42,13 +44,14 @@ namespace DAL
                 object result = dbHelper.ExecuteScalar(query, CommandType.Text, parameters);
                 string idMax = result.ToString()!;
                 checkDigitDAL.AddCheckDigit("Products", "Id", idMax);
+                checkDigitDAL.RecalculateVerticalDigit("Products");
+
                 return int.Parse(idMax);
             }
             catch (Exception ex)
             {
                 throw new Exception("Error al agregar el producto", ex);
             }
-
         }
 
         public void DeleteProduct(int id)
@@ -63,7 +66,9 @@ namespace DAL
                 };
 
                 dbHelper.ExecuteNonQuery(query, CommandType.Text, parameters);
+
                 checkDigitDAL.AddCheckDigit("Products", "Id", id.ToString());
+                checkDigitDAL.RecalculateVerticalDigit("Products");
             }
             catch (Exception ex)
             {
@@ -71,13 +76,12 @@ namespace DAL
             }
         }
 
-
         public IList<Category> GetCategories()
         {
             try
             {
                 List<Category> list = new List<Category>();
-                string query = $@"SELECT * from Categories";
+                string query = $@"SELECT * FROM Categories";
                 SqlParameter[] parameters = [];
                 DataSet ds = dbHelper.ExecuteDataSet(query, CommandType.Text, parameters);
 
@@ -85,12 +89,12 @@ namespace DAL
                 {
                     foreach (DataRow dr in ds.Tables[0].Rows)
                     {
-                        Category product = new Category
+                        Category category = new Category
                         {
                             Id = int.Parse(dr["Id"].ToString()!),
                             Description = dr["Description"].ToString()!,
                         };
-                        list.Add(product);
+                        list.Add(category);
                     }
                     return list.OrderBy(f => f.Description).ToList();
                 }
@@ -98,14 +102,11 @@ namespace DAL
                 {
                     return new List<Category>();
                 }
-
             }
             catch (Exception)
             {
-
                 throw;
             }
-
         }
 
         public IList<ProductDTO> GetProducts(bool isBenefit, bool showAll = true)
@@ -114,9 +115,9 @@ namespace DAL
             {
                 List<ProductDTO> list = new List<ProductDTO>();
                 string query = $@"SELECT p.Id, p.Description, p.ProductName, p.StartDate, p.EndDate, p.Points, c.Description Category 
-                          FROM Products p 
-                          LEFT JOIN Categories c ON c.Id = p.CategoryId 
-                          WHERE " + (isBenefit ? "c.Id = 4" : "c.Id <> 4") +
+                                  FROM Products p 
+                                  LEFT JOIN Categories c ON c.Id = p.CategoryId 
+                                  WHERE " + (isBenefit ? "c.Id = 4" : "c.Id <> 4") +
                                   (showAll ? string.Empty : " AND p.EndDate IS NULL");
                 SqlParameter[] parameters = [];
                 DataSet ds = dbHelper.ExecuteDataSet(query, CommandType.Text, parameters);
@@ -143,14 +144,16 @@ namespace DAL
                 {
                     return new List<ProductDTO>();
                 }
-
             }
             catch (Exception)
             {
-
                 throw;
             }
         }
 
+        public void RecalculateProductVerticalDigits()
+        {
+            checkDigitDAL.RecalculateVerticalDigit("Products");
+        }
     }
 }

@@ -1,0 +1,73 @@
+﻿@page "/gestionar-backup"
+@using Microsoft.AspNetCore.Components.Forms
+
+<style>
+    .backup-section {
+        background: #fafafa;
+        border-radius: 16px;
+        padding: 30px;
+        margin-bottom: 32px;
+        display: flex;
+        align-items: flex-start;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        min-height: 140px;
+    }
+
+    .backup-icon {
+        font-size: 70px;
+        margin-right: 40px;
+        margin-top: 32px;
+    }
+
+    .backup-group {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+    }
+
+    .backup-label {
+        color: #279149;
+        font-size: 1.6rem;
+        font-weight: bold;
+        margin-bottom: 18px;
+    }
+
+    .backup-btn {
+        font-size: 1.2rem;
+        padding: 14px 0;
+        border-radius: 10px;
+        margin-top: 14px;
+        margin-bottom: 8px;
+        width: 100%;
+        max-width: 350px;
+        transition: background .15s;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
+
+<h2 style="color:#279149; display: flex; align-items: center; gap: 10px;">
+    <span>
+        <img src="https://cdn-icons-png.flaticon.com/512/2910/2910791.png" width="38" style="vertical-align: middle;" />
+    </span>
+    Gestión de Backup
+</h2>
+
+<div class="backup-section">
+    <span class="backup-icon">
+        <img src="https://cdn-icons-png.flaticon.com/512/2936/2936925.png" width="60" alt="Backup" />
+    </span>
+    <div class="backup-group">
+        <label class="backup-label">Respaldo</label>
+        <a href="/api/backup/download" class="btn btn-success backup-btn">
+            Realizar BackUp
+        </a>
+        <div style="font-size:0.95em; color:#888; margin-top:7px;">
+            El archivo se descargará automáticamente en tu carpeta de <b>Descargas</b>.
+        </div>
+    </div>
+</div>

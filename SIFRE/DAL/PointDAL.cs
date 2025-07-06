@@ -27,8 +27,8 @@ namespace DAL
         public long ExchangePoints(int productId, long userPoints)
         {
             string query = @"INSERT INTO Transactions (UserId, Points, ProductId, TransactionDate) 
-                            VALUES (@UserId, (  SELECT Points FROM Products WHERE Id = @ProductId), @ProductId, @TransactionDate);
-                              Update Users SET Points = Points - (SELECT Points FROM Products WHERE Id = @ProductId) WHERE Id = @UserId;
+                            VALUES (@UserId, (SELECT Points FROM Products WHERE Id = @ProductId), @ProductId, @TransactionDate);
+                            UPDATE Users SET Points = Points - (SELECT Points FROM Products WHERE Id = @ProductId) WHERE Id = @UserId;
                             SELECT SCOPE_IDENTITY();";
             SqlParameter[] parameters =
             [
@@ -39,6 +39,7 @@ namespace DAL
             object result = dbHelper.ExecuteScalar(query, CommandType.Text, parameters);
 
             checkDigitDAL.AddCheckDigit("Transactions", "Id", result.ToString());
+            checkDigitDAL.RecalculateVerticalDigit("Transactions");
 
             query = @"SELECT Points FROM Users Where Id = @UserId";
             parameters =
@@ -46,7 +47,7 @@ namespace DAL
                 new SqlParameter("@UserId", SingletonSession.Instancia.User.Id)
             ];
 
-            return dbHelper.ExecuteScalar(query, CommandType.Text, parameters);            
+            return dbHelper.ExecuteScalar(query, CommandType.Text, parameters);
         }
 
         public long GetPointsByUserId(Guid id)
@@ -91,14 +92,11 @@ namespace DAL
                 {
                     return new List<TransactionDTO>();
                 }
-
             }
             catch (Exception)
             {
-
                 throw;
             }
-
         }
 
         public List<PointTransferDTO> GetPointTransfers()
@@ -133,6 +131,7 @@ namespace DAL
                 return new List<PointTransferDTO>();
             }
         }
+
         public void TransferPointsToUser(decimal value, Guid id)
         {
             string query = @"INSERT INTO PointTransfers (SenderUserId, ReceiverUserId, PointsTransferred, TransferDate) 
@@ -147,7 +146,9 @@ namespace DAL
                 new SqlParameter("@TransferDate", DateTime.Now)
             ];
             object result = dbHelper.ExecuteScalar(query, CommandType.Text, parameters);
+
             checkDigitDAL.AddCheckDigit("PointTransfers", "Id", result.ToString());
+            checkDigitDAL.RecalculateVerticalDigit("PointTransfers");
         }
     }
 }

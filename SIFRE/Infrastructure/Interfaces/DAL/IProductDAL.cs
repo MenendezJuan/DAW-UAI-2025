@@ -14,5 +14,6 @@ namespace Infrastructure.Interfaces.DAL
         IList<ProductDTO> GetProducts(bool isBenefit, bool showAll = true);
         void DeleteProduct(int id);
         int AddProduct(ProductDTO productDTO);
+        void RecalculateProductVerticalDigits();
     }
 }

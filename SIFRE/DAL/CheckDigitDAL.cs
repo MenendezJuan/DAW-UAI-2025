@@ -1,18 +1,18 @@
 ﻿using DAL.Helper;
 using Infrastructure.Interfaces.DAL;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace DAL
 {
     public class CheckDigitDAL : ICheckDigitDAL
     {
         private DatabaseHelper helper;
+
         public CheckDigitDAL()
         {
             helper = new DatabaseHelper();
@@ -20,32 +20,10 @@ namespace DAL
 
         public void VerifyTable(string tableName)
         {
-            string query = $"SELECT * FROM {tableName};";
-            DataSet dataSet = helper.ExecuteDataSet(query);
-
-            if (dataSet.Tables.Count > 0 && dataSet.Tables[0].Rows.Count > 0)
-            {
-                foreach (DataRow row in dataSet.Tables[0].Rows)
-                {
-                    string concatenatedValues = "";
-                    foreach (object value in row.ItemArray)
-                    {
-                        if (value.ToString() == row["CheckDigitHorizontal"].ToString())
-                            continue;
-
-                        concatenatedValues += value.ToString();
-                    }
-
-                    string encryptedString = GetSHA256(concatenatedValues);
-                    if (row["CheckDigitHorizontal"].ToString() != encryptedString)
-                    {
-                        throw new Exception($"Inconsistencia detectada en tabla: {tableName} | Id: {row["Id"]}");
-                        //throw new Exception($"Data inconsistency detected in table: {tableName} | {concatenatedValues}");
-                    }
-                }
-            }
+            string inconsistentes = GetInconsistentIds(tableName);
+            if (!string.IsNullOrEmpty(inconsistentes))
+                throw new Exception($"Inconsistencia detectada en tabla: {tableName}. IDs: {inconsistentes}");
         }
-
         public void RecalculateTable(string tableName, string keyField)
         {
             string query = $"SELECT * FROM {tableName};";
@@ -55,104 +33,150 @@ namespace DAL
             {
                 foreach (DataRow row in dataSet.Tables[0].Rows)
                 {
+                    int dvhIndex = row.Table.Columns["CheckDigitHorizontal"].Ordinal;
                     string concatenatedValues = "";
-                    foreach (object value in row.ItemArray)
+                    for (int i = 0; i < row.ItemArray.Length; i++)
                     {
-                        if (value.ToString() == row["CheckDigitHorizontal"].ToString())
-                            continue;
-
-                        concatenatedValues += value.ToString();
+                        if (i == dvhIndex) continue;
+                        concatenatedValues += row[i]?.ToString() ?? "";
                     }
-
                     string encryptedString = GetSHA256(concatenatedValues);
-                    string updateQuery = $"UPDATE {tableName} SET CheckDigitHorizontal = '{encryptedString}' WHERE {keyField} = '{row[keyField]}';";
-                    helper.ExecuteNonQuery(updateQuery);
+                    string updateQuery = $"UPDATE {tableName} SET CheckDigitHorizontal = @hash WHERE {keyField} = @id;";
+                    helper.ExecuteNonQuery(updateQuery, CommandType.Text, new SqlParameter[] {
+                        new SqlParameter("@hash", encryptedString),
+                        new SqlParameter("@id", row[keyField])
+                    });
                 }
             }
         }
 
         public void AddCheckDigit(string tableName, string keyField, string keyValue)
         {
-            string query = $"SELECT * FROM {tableName} WHERE {keyField} = '{keyValue}';";
-            DataSet dataSet = helper.ExecuteDataSet(query);
+            string query = $"SELECT * FROM {tableName} WHERE {keyField} = @id;";
+            DataSet dataSet = helper.ExecuteDataSet(query, CommandType.Text, new SqlParameter[] {
+                new SqlParameter("@id", keyValue)
+            });
 
             if (dataSet.Tables.Count > 0 && dataSet.Tables[0].Rows.Count > 0)
             {
+                DataRow row = dataSet.Tables[0].Rows[0];
+                int dvhIndex = row.Table.Columns["CheckDigitHorizontal"].Ordinal;
                 string concatenatedValues = "";
-                foreach (object value in dataSet.Tables[0].Rows[0].ItemArray)
+                for (int i = 0; i < row.ItemArray.Length; i++)
                 {
-                    if (value.ToString() == dataSet.Tables[0].Rows[0]["CheckDigitHorizontal"].ToString())
-                        continue;
-
-                    concatenatedValues += value.ToString();
+                    if (i == dvhIndex) continue;
+                    concatenatedValues += row[i]?.ToString() ?? "";
                 }
-
                 string encryptedString = GetSHA256(concatenatedValues);
-                string updateQuery = $"UPDATE {tableName} SET CheckDigitHorizontal = '{encryptedString}' WHERE {keyField} = '{keyValue}';";
-                helper.ExecuteNonQuery(updateQuery);
+                string updateQuery = $"UPDATE {tableName} SET CheckDigitHorizontal = @hash WHERE {keyField} = @id;";
+                helper.ExecuteNonQuery(updateQuery, CommandType.Text, new SqlParameter[] {
+                    new SqlParameter("@hash", encryptedString),
+                    new SqlParameter("@id", keyValue)
+                });
             }
         }
-
-        public void RecalculateVerticalDigit(string tableName, string[] columns)
+        public void RecalculateVerticalDigit(string tableName)
         {
-            foreach (string column in columns)
-            {
-                string query = $"SELECT {column} FROM {tableName};";
-                DataSet dataSet = helper.ExecuteDataSet(query);
+            string query = $"SELECT CheckDigitHorizontal FROM {tableName}";
+            DataSet ds = helper.ExecuteDataSet(query, CommandType.Text);
 
-                if (dataSet.Tables.Count > 0 && dataSet.Tables[0].Rows.Count > 0)
-                {
-                    string concatenatedValues = "";
-                    foreach (DataRow row in dataSet.Tables[0].Rows)
-                    {
-                        concatenatedValues += row[column].ToString();
-                    }
+            var sb = new StringBuilder();
+            foreach (DataRow row in ds.Tables[0].Rows)
+                if (row["CheckDigitHorizontal"] != DBNull.Value)
+                    sb.Append(row["CheckDigitHorizontal"].ToString());
 
-                    string encryptedString = GetSHA256(concatenatedValues);
+            string dvv = GetSHA256(sb.ToString());
 
-                    string updateQuery = $"UPDATE {tableName} SET CheckDigitVertical = '{encryptedString}';";
-                    helper.ExecuteNonQuery(updateQuery);
-                }
-            }
+            string insert = "INSERT INTO IntegrityControl (TableName, CheckDigitVertical, FechaCalculo) VALUES (@table, @dvv, GETDATE())";
+            int affected = helper.ExecuteNonQuery(insert, CommandType.Text, new SqlParameter[] {
+                new SqlParameter("@table", tableName),
+                new SqlParameter("@dvv", dvv)
+            });
+
+            if (affected <= 0)
+                throw new Exception("No se pudo insertar el registro de DVV en IntegrityControl.");
         }
 
-        public bool VerifyVerticalDigit(string tableName, string[] columns)
+        public bool VerifyVerticalDigit(string tableName)
         {
-            foreach (string column in columns)
+            string query = $"SELECT CheckDigitHorizontal FROM {tableName}";
+            DataSet ds = helper.ExecuteDataSet(query, CommandType.Text);
+
+            var sb = new StringBuilder();
+            foreach (DataRow row in ds.Tables[0].Rows)
+                if (row["CheckDigitHorizontal"] != DBNull.Value)
+                    sb.Append(row["CheckDigitHorizontal"].ToString());
+
+            string dvvCalculated = GetSHA256(sb.ToString());
+
+            string select = "SELECT CheckDigitVertical FROM IntegrityControl WHERE TableName = @table";
+            object dvvStored = helper.ExecuteScalar(select, CommandType.Text, new SqlParameter[] {
+                new SqlParameter("@table", tableName)
+            });
+
+            if (dvvStored == null || dvvStored == DBNull.Value)
+                throw new Exception("No hay DVV vertical almacenado para la tabla " + tableName);
+
+            if (dvvCalculated != dvvStored.ToString())
+                throw new Exception("¡DVV vertical no coincide! Integridad comprometida en " + tableName);
+
+            return true;
+        }
+
+        public IDictionary<string, string> GetVerticalDigits()
+        {
+            string query = "SELECT TableName, CheckDigitVertical FROM IntegrityControl";
+            DataSet ds = helper.ExecuteDataSet(query, CommandType.Text);
+
+            var dict = new Dictionary<string, string>();
+            if (ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
             {
-                string query = $"SELECT {column}, CheckDigitVertical FROM {tableName};";
-                DataSet dataSet = helper.ExecuteDataSet(query);
-
-                if (dataSet.Tables.Count > 0 && dataSet.Tables[0].Rows.Count > 0)
-                {
-                    string concatenatedValues = "";
-                    foreach (DataRow row in dataSet.Tables[0].Rows)
-                    {
-                        concatenatedValues += row[column].ToString();
-                    }
-
-                    string calculatedDvVertical = GetSHA256(concatenatedValues);
-
-                    if (dataSet.Tables[0].Rows[0]["CheckDigitVertical"].ToString() != calculatedDvVertical)
-                    {
-                        throw new Exception($"Data inconsistency detected in table: {tableName} | {concatenatedValues}");
-                    }
-                }
+                foreach (DataRow row in ds.Tables[0].Rows)
+                    dict[row["TableName"].ToString()] = row["CheckDigitVertical"].ToString();
             }
-
-            return true; // Todo está correcto
+            return dict;
         }
 
         public static string GetSHA256(string str)
         {
-            SHA256 sha256 = SHA256Managed.Create();
-            ASCIIEncoding encoding = new ASCIIEncoding();
-            byte[] stream = null;
-            StringBuilder sb = new StringBuilder();
-            stream = sha256.ComputeHash(encoding.GetBytes(str));
-            for (int i = 0; i < stream.Length; i++) sb.AppendFormat("{0:x2}", stream[i]);
-            return sb.ToString();
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                ASCIIEncoding encoding = new ASCIIEncoding();
+                byte[] stream = sha256.ComputeHash(encoding.GetBytes(str));
+                var sb = new StringBuilder();
+                for (int i = 0; i < stream.Length; i++) sb.AppendFormat("{0:x2}", stream[i]);
+                return sb.ToString();
+            }
         }
 
+        public string GetInconsistentIds(string tableName)
+        {
+            string query = $"SELECT * FROM {tableName};";
+            DataSet dataSet = helper.ExecuteDataSet(query);
+
+            List<int> inconsistentes = new List<int>();
+
+            if (dataSet.Tables.Count > 0 && dataSet.Tables[0].Rows.Count > 0)
+            {
+                foreach (DataRow row in dataSet.Tables[0].Rows)
+                {
+                    int dvhIndex = row.Table.Columns["CheckDigitHorizontal"].Ordinal;
+                    string concatenatedValues = "";
+                    for (int i = 0; i < row.ItemArray.Length; i++)
+                    {
+                        if (i == dvhIndex) continue;
+                        concatenatedValues += row[i]?.ToString() ?? "";
+                    }
+                    string encryptedString = GetSHA256(concatenatedValues);
+                    if (row["CheckDigitHorizontal"].ToString() != encryptedString)
+                        inconsistentes.Add(Convert.ToInt32(row["Id"])); 
+                }
+            }
+
+            if (inconsistentes.Any())
+                return $"Inconsistencias|{string.Join(",", inconsistentes)}|{tableName}";
+            else
+                return string.Empty;
+        }
     }
 }

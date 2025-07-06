@@ -8,40 +8,267 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject IJSRuntime JS
 
-<h5 class="text-success fw-bold">Inconsistencias de base de datos:</h5>
+<style>
+    .cajas-flex {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 28px;
+        margin-top: 30px;
+        justify-content: flex-start;
+    }
+
+    .caja-accion {
+        background: #fff;
+        border-radius: 15px;
+        box-shadow: 0 2px 12px #b1f7e0a1;
+        border: 1.5px solid #d3ece2;
+        padding: 26px 32px 20px 32px;
+        min-width: 260px;
+        max-width: 370px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 0;
+        flex: 1 1 330px;
+        transition: box-shadow .14s;
+    }
+
+        .caja-accion:hover {
+            box-shadow: 0 6px 26px #79efc88c;
+        }
+
+    .icono-caja {
+        margin-bottom: 12px;
+    }
+
+    .titulo-caja {
+        color: #148354;
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 11px;
+        letter-spacing: 0.01em;
+        text-align: center;
+    }
+
+    .descripcion-caja {
+        font-size: 1.01rem;
+        color: #7b7b7b;
+        margin-bottom: 14px;
+        text-align: center;
+    }
+
+    .btn-caja {
+        font-size: 1.05rem;
+        padding: 11px 0;
+        border-radius: 9px;
+        width: 100%;
+        font-weight: 700;
+        background: #22a96b;
+        color: #fff;
+        border: none;
+        margin: 12px 0 7px 0;
+        transition: background .12s;
+        box-shadow: 0 1px 7px #b9eccd2c;
+        cursor: pointer;
+    }
+
+        .btn-caja:disabled,
+        .btn-caja[disabled] {
+            background: #e7ecea;
+            color: #aaa;
+            cursor: not-allowed;
+        }
+
+        .btn-caja:hover:enabled {
+            background: #177a47;
+        }
+
+    .input-custom {
+        font-size: 1.05rem;
+        padding: 8px 12px;
+        border-radius: 7px;
+        border: 1.2px solid #bde0d0;
+        width: 100%;
+        margin-bottom: 10px;
+        background: #f8faf9;
+    }
+
+    .selected-file {
+        font-size: 1rem;
+        color: #267c56;
+        background: #eafaf1;
+        padding: 4px 10px;
+        border-radius: 5px;
+        margin-bottom: 6px;
+        border: 1px solid #b7ead2;
+    }
+
+    .estado-restore {
+        font-size: 0.98rem;
+        color: #666;
+        margin-top: 7px;
+        opacity: 0.94;
+        text-align: center;
+    }
+
+    .inconsist-list {
+        font-size: 1.13rem;
+        color: #b38900;
+        margin: 0 0 10px 2px;
+        padding-left: 16px;
+    }
+
+        .inconsist-list li {
+            margin-bottom: 7px;
+        }
+
+</style>
+
+<h5 class="text-success fw-bold" style="font-size:1.21rem;">
+    Inconsistencias de base de datos:
+</h5>
 
 @if (Inconsistencias.Any())
 {
-    <ul class="text-success">
+    <ul class="inconsist-list">
         @foreach (var inconsistencia in Inconsistencias)
         {
-            <li>[Tabla: @inconsistencia.TableName RegistroId: @inconsistencia.RecordId]</li>
+            <li>
+                <span style="font-size:1.1em;">⚠️</span>
+                <b>[<span style="color:#148354">@inconsistencia.TableName</span>]</b>
+                RegistroId: <b>@inconsistencia.RecordId</b>
+            </li>
         }
     </ul>
 
-    <div class="d-flex gap-3 mt-3">
-        <button class="btn btn-success fw-bold" @onclick="Recalcular">🔁 Recalcular</button>
-        <label class="btn btn-success fw-bold m-0">
-            📂 Restaurar
-            <InputFile OnChange="Restaurar" class="d-none" />
-        </label>
+    <div class="cajas-flex">
+        <div class="caja-accion">
+            <span class="icono-caja">
+                <img src="https://cdn-icons-png.flaticon.com/512/4213/4213179.png" width="42" alt="Recalcular" />
+            </span>
+            <div class="titulo-caja">Recalcular Integridad</div>
+            <div class="descripcion-caja">
+                Vuelve a calcular los dígitos verificadores para reparar inconsistencias.
+            </div>
+            <button class="btn-caja" @onclick="Recalcular">
+                🔁 Recalcular
+            </button>
+        </div>
+        <div class="caja-accion">
+            <span class="icono-caja">
+                <img src="https://cdn-icons-png.flaticon.com/512/3039/3039433.png" width="42" alt="Restore" />
+            </span>
+            <div class="titulo-caja">Restaurar Backup</div>
+            <InputFile OnChange="OnFileSelected" accept=".bak" class="input-custom" />
+            @if (ArchivoSeleccionado != null)
+            {
+                <div class="selected-file">
+                    Archivo: @ArchivoSeleccionado.Name <br />
+                    ¿Válido?: @(ArchivoValido ? "Sí ✅" : "No ❌")
+                </div>
+            }
+            <button class="btn-caja"
+                    @onclick="ProcesarRestore"
+                    disabled="@(!ArchivoValido)">
+                Restaurar
+            </button>
+            <div class="estado-restore">
+                Archivo: <b>@(ArchivoSeleccionado?.Name ?? "Ninguno")</b><br />
+                @if (!string.IsNullOrWhiteSpace(MensajeRestore))
+                {
+                    <span style="color:navy;">@MensajeRestore</span>
+                }
+            </div>
+        </div>
     </div>
+
 }
 else
 {
-    <p class="text-success">✔ No se encontraron inconsistencias.</p>
+    <p class="text-success" style="font-size:1.14rem;margin:20px 0 0 6px;">
+        ✔ Hash recalculado! 
+    </p>
 }
 
 @code {
     private List<(string TableName, int RecordId)> Inconsistencias = new();
 
+    private IBrowserFile ArchivoSeleccionado;
+    private string MensajeRestore;
+
+    private readonly string[] TablasMonitoreadas = new[] { "Products", "Transactions", "PointTransfers" };
+
+    private bool ArchivoValido =>
+        ArchivoSeleccionado != null &&
+        !string.IsNullOrWhiteSpace(ArchivoSeleccionado.Name) &&
+        ArchivoSeleccionado.Name.EndsWith(".bak", StringComparison.OrdinalIgnoreCase);
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        if (e.FileCount > 0)
+        {
+            ArchivoSeleccionado = e.File;
+            MensajeRestore = $"Archivo seleccionado: {ArchivoSeleccionado.Name}";
+        }
+        else
+        {
+            ArchivoSeleccionado = null;
+            MensajeRestore = "No se pudo leer el archivo seleccionado.";
+        }
+        StateHasChanged();
+    }
+
+    private async Task ProcesarRestore()
+    {
+        if (!ArchivoValido)
+        {
+            MensajeRestore = "Archivo inválido. Debe tener extensión .bak";
+            return;
+        }
+
+        try
+        {
+            var tempPath = Path.GetTempFileName();
+            await using (var fs = File.Create(tempPath))
+            {
+                await ArchivoSeleccionado.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024).CopyToAsync(fs);
+            }
+
+            BackupBLL.RestoreBackup(tempPath);
+
+            LogBLL.Save(new Log
+            {
+                Message = "Se restauró la base de datos. Requiere reingreso.",
+                CreatedAt = DateTime.Now,
+                CreatedBy = UsersMapper.DtoToUser(SingletonSession.Instancia?.User),
+                Type = LogType.Info,
+                Module = nameof(ProcesarRestore)
+            });
+
+            MensajeRestore = "La base de datos fue restaurada. Vuelva a iniciar sesión.";
+            ArchivoSeleccionado = null;
+            await JS.InvokeVoidAsync("alert", MensajeRestore);
+        }
+        catch (Exception ex)
+        {
+            MensajeRestore = "Error al intentar restaurar: " + ex.Message;
+        }
+
+        StateHasChanged();
+    }
+
     protected override void OnInitialized()
     {
-        var tablas = new[] { "Products", "Transactions", "PointTransfers" };
+        CargarInconsistencias();
+    }
 
-        foreach (var table in tablas)
+    private void CargarInconsistencias()
+    {
+        Inconsistencias.Clear();
+
+        foreach (var table in TablasMonitoreadas)
         {
-            var result = CheckDigitBLL.VerifyTable(table);
+            var result = CheckDigitBLL.GetInconsistentIds(table);
 
             if (!string.IsNullOrWhiteSpace(result))
             {
@@ -61,7 +288,6 @@ else
             string tableName = partes[2].Trim();
             string registros = partes[1].Trim();
 
-            // Busca cualquier número en la segunda parte
             var numeros = System.Text.RegularExpressions.Regex.Matches(registros, @"\d+")
                 .Select(m => int.TryParse(m.Value, out var id) ? id : -1)
                 .Where(id => id != -1);
@@ -75,9 +301,14 @@ else
 
     private async Task Recalcular()
     {
-        foreach (var inconsistencia in Inconsistencias)
+        var tablasConInconsistencias = Inconsistencias
+            .Select(x => x.TableName)
+            .Distinct();
+
+        foreach (var table in tablasConInconsistencias)
         {
-            CheckDigitBLL.RecalculateTable(inconsistencia.TableName, CheckDigitBLL.GetIdByTable(inconsistencia.TableName));
+            CheckDigitBLL.RecalculateTable(table, CheckDigitBLL.GetIdByTable(table));
+            CheckDigitBLL.RecalculateVerticalDigit(table);
         }
 
         LogBLL.Save(new Log
@@ -89,37 +320,10 @@ else
             Module = nameof(Recalcular)
         });
 
-        await JS.InvokeVoidAsync("alert", "Se recalcularon las tablas. Vuelva a iniciar sesión.");
-    }
+        await JS.InvokeVoidAsync("alert", "Se recalcularon las tablas y los controles de integridad. Vuelva a iniciar sesión.");
 
-    private async Task Restaurar(InputFileChangeEventArgs e)
-    {
-        var file = e.File;
-
-        if (!file.Name.EndsWith(".bak", StringComparison.OrdinalIgnoreCase))
-        {
-            await JS.InvokeVoidAsync("alert", "El formato del archivo debe ser .bak");
-            return;
-        }
-
-        var tempPath = Path.GetTempFileName();
-        await using var fs = File.Create(tempPath);
-        await file.OpenReadStream().CopyToAsync(fs);
-        fs.Close();
-
-        BackupBLL.RestoreBackup(tempPath);
-
-        LogBLL.Save(new Log
-        {
-            Message = "Se restauró la base de datos. Requiere reingreso.",
-            CreatedAt = DateTime.Now,
-            CreatedBy = UsersMapper.DtoToUser(SingletonSession.Instancia?.User),
-            Type = LogType.Info,
-            Module = nameof(Restaurar)
-        });
-
-        await JS.InvokeVoidAsync("alert", "La base de datos fue restaurada. Vuelva a iniciar sesión.");
+        CargarInconsistencias();
+        StateHasChanged();
     }
 }
 @rendermode InteractiveServer
-@inject IJSRuntime JS
