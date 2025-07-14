@@ -228,7 +228,9 @@ else
 
         try
         {
-            var tempPath = Path.GetTempFileName();
+            string tempPath = "C:\\Work\\Corporate\\DAW-UAI-2025\\SIFRE\\WebUI\\backup.bak";
+            //var tempPath = Path.GetTempFileName();
+            Console.WriteLine($"Archivo temporal creado: {tempPath}");
             await using (var fs = File.Create(tempPath))
             {
                 await ArchivoSeleccionado.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024).CopyToAsync(fs);
