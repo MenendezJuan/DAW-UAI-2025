@@ -11,5 +11,9 @@ namespace Infrastructure.Interfaces.BLL
         string VerifyTable(string tableName);
         void RecalculateTable(string tableName, string keyField);
         string GetIdByTable(string tableName);
+        void RecalculateVerticalDigit(string tableName);
+        bool VerifyVerticalDigit(string tableName);
+        IDictionary<string, string> GetVerticalDigits();
+        string GetInconsistentIds(string tableName);
     }
 }

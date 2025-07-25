@@ -14,6 +14,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddControllers();
 
 builder.Services.AddTransient<IUserDAL, UserDAL>();
 builder.Services.AddTransient<IUserBLL, UserBLL>();
@@ -45,7 +46,7 @@ builder.Services.AddScoped<SingletonSession>();
 DatabaseHelper.Configure(builder.Configuration.GetConnectionString("DefaultConnection"));
 
 builder.Services.AddScoped<IDbConnection>(_ => new SqlConnection(connectionString));
-
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
@@ -59,12 +60,15 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
-app.UseAntiforgery();
+
+app.UseRouting();          
+
+app.UseAntiforgery();      
+
+app.MapControllers();      
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-
 
 app.Run();

@@ -34,6 +34,11 @@ namespace BLL
             return productDAL.GetCategories();
         }
 
+        public void RecalculateProductVerticalDigits()
+        {
+            productDAL.RecalculateProductVerticalDigits();
+        }
+
         IList<ProductDTO> IProductBLL.GetProducts(bool isBenefit, bool showAll = true)
         {
             return productDAL.GetProducts(isBenefit, showAll);

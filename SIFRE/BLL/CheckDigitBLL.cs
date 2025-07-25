@@ -1,17 +1,13 @@
-﻿using DAL;
-using Infrastructure.Interfaces.BLL;
+﻿using Infrastructure.Interfaces.BLL;
 using Infrastructure.Interfaces.DAL;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BLL
 {
     public class CheckDigitBLL : ICheckDigitBLL
     {
-        private ICheckDigitDAL _checkDigitDAL;
+        private readonly ICheckDigitDAL _checkDigitDAL;
+
         public CheckDigitBLL(ICheckDigitDAL checkDigitDAL)
         {
             _checkDigitDAL = checkDigitDAL;
@@ -22,9 +18,7 @@ namespace BLL
             switch (tableName)
             {
                 case "Products":
-                    return "Id";
                 case "Transactions":
-                    return "Id";
                 case "PointTransfers":
                     return "Id";
                 default:
@@ -32,9 +26,24 @@ namespace BLL
             }
         }
 
+        public string GetInconsistentIds(string tableName)
+        {
+            return _checkDigitDAL.GetInconsistentIds(tableName);
+        }
+
+        public IDictionary<string, string> GetVerticalDigits()
+        {
+            return _checkDigitDAL.GetVerticalDigits();
+        }
+
         public void RecalculateTable(string tableName, string keyField)
         {
             _checkDigitDAL.RecalculateTable(tableName, keyField);
+        }
+
+        public void RecalculateVerticalDigit(string tableName)
+        {
+            _checkDigitDAL.RecalculateVerticalDigit(tableName);
         }
 
         public string VerifyTable(string tableName)
@@ -42,13 +51,17 @@ namespace BLL
             try
             {
                 _checkDigitDAL.VerifyTable(tableName);
-                // Si verifica la tabla no retorna nada.
                 return string.Empty;
             }
-            catch (Exception e)
+            catch (System.Exception e)
             {
                 return e.Message + "|" + tableName;
             }
+        }
+
+        public bool VerifyVerticalDigit(string tableName)
+        {
+            return _checkDigitDAL.VerifyVerticalDigit(tableName);
         }
     }
 }

@@ -26,27 +26,39 @@ namespace DAL
 
         public long ExchangePoints(int productId, long userPoints)
         {
-            string query = @"INSERT INTO Transactions (UserId, Points, ProductId, TransactionDate) 
-                            VALUES (@UserId, (  SELECT Points FROM Products WHERE Id = @ProductId), @ProductId, @TransactionDate);
-                              Update Users SET Points = Points - (SELECT Points FROM Products WHERE Id = @ProductId) WHERE Id = @UserId;
-                            SELECT SCOPE_IDENTITY();";
-            SqlParameter[] parameters =
+            // First, insert the transaction and get the transaction ID
+            string insertQuery = @"INSERT INTO Transactions (UserId, Points, ProductId, TransactionDate) 
+                                 VALUES (@UserId, (SELECT Points FROM Products WHERE Id = @ProductId), @ProductId, @TransactionDate);
+                                 SELECT SCOPE_IDENTITY();";
+            SqlParameter[] insertParameters =
             [
                 new SqlParameter("@UserId", SingletonSession.Instancia.User.Id),
                 new SqlParameter("@ProductId", productId),
                 new SqlParameter("@TransactionDate", DateTime.Now)
             ];
-            object result = dbHelper.ExecuteScalar(query, CommandType.Text, parameters);
+            int transactionId = dbHelper.ExecuteScalar(insertQuery, CommandType.Text, insertParameters);
 
-            checkDigitDAL.AddCheckDigit("Transactions", "Id", result.ToString());
+            // Update user points
+            string updateQuery = @"UPDATE Users SET Points = Points - (SELECT Points FROM Products WHERE Id = @ProductId) WHERE Id = @UserId";
+            SqlParameter[] updateParameters =
+            [
+                new SqlParameter("@UserId", SingletonSession.Instancia.User.Id),
+                new SqlParameter("@ProductId", productId)
+            ];
+            dbHelper.ExecuteNonQuery(updateQuery, CommandType.Text, updateParameters);
 
-            query = @"SELECT Points FROM Users Where Id = @UserId";
-            parameters =
+            // Add check digit for the transaction
+            checkDigitDAL.AddCheckDigit("Transactions", "Id", transactionId.ToString());
+            checkDigitDAL.RecalculateVerticalDigit("Transactions");
+
+            // Get and return the updated user points
+            string selectQuery = @"SELECT Points FROM Users Where Id = @UserId";
+            SqlParameter[] selectParameters =
             [
                 new SqlParameter("@UserId", SingletonSession.Instancia.User.Id)
             ];
 
-            return dbHelper.ExecuteScalar(query, CommandType.Text, parameters);            
+            return dbHelper.ExecuteScalarLong(selectQuery, CommandType.Text, selectParameters);
         }
 
         public long GetPointsByUserId(Guid id)
@@ -91,14 +103,11 @@ namespace DAL
                 {
                     return new List<TransactionDTO>();
                 }
-
             }
             catch (Exception)
             {
-
                 throw;
             }
-
         }
 
         public List<PointTransferDTO> GetPointTransfers()
@@ -133,21 +142,40 @@ namespace DAL
                 return new List<PointTransferDTO>();
             }
         }
+
         public void TransferPointsToUser(decimal value, Guid id)
         {
-            string query = @"INSERT INTO PointTransfers (SenderUserId, ReceiverUserId, PointsTransferred, TransferDate) 
-                            VALUES (@SenderUserId, @ReceiverUserId, @PointsTransferred, @TransferDate);
-                            SELECT SCOPE_IDENTITY();
-                            UPDATE Users SET Points = Points - @PointsTransferred WHERE Id = @SenderUserId;
-                            UPDATE Users SET Points = Points + @PointsTransferred WHERE Id = @ReceiverUserId;";
-            SqlParameter[] parameters = [
+            // First, insert the transfer record and get the transfer ID
+            string insertQuery = @"INSERT INTO PointTransfers (SenderUserId, ReceiverUserId, PointsTransferred, TransferDate) 
+                                 VALUES (@SenderUserId, @ReceiverUserId, @PointsTransferred, @TransferDate);
+                                 SELECT SCOPE_IDENTITY();";
+            SqlParameter[] insertParameters = [
                 new SqlParameter("@SenderUserId", SingletonSession.Instancia.User.Id),
                 new SqlParameter("@ReceiverUserId", id),
                 new SqlParameter("@PointsTransferred", value),
                 new SqlParameter("@TransferDate", DateTime.Now)
             ];
-            object result = dbHelper.ExecuteScalar(query, CommandType.Text, parameters);
-            checkDigitDAL.AddCheckDigit("PointTransfers", "Id", result.ToString());
+            int transferId = dbHelper.ExecuteScalar(insertQuery, CommandType.Text, insertParameters);
+
+            // Update sender points (subtract)
+            string updateSenderQuery = @"UPDATE Users SET Points = Points - @PointsTransferred WHERE Id = @SenderUserId";
+            SqlParameter[] updateSenderParameters = [
+                new SqlParameter("@SenderUserId", SingletonSession.Instancia.User.Id),
+                new SqlParameter("@PointsTransferred", value)
+            ];
+            dbHelper.ExecuteNonQuery(updateSenderQuery, CommandType.Text, updateSenderParameters);
+
+            // Update receiver points (add)
+            string updateReceiverQuery = @"UPDATE Users SET Points = Points + @PointsTransferred WHERE Id = @ReceiverUserId";
+            SqlParameter[] updateReceiverParameters = [
+                new SqlParameter("@ReceiverUserId", id),
+                new SqlParameter("@PointsTransferred", value)
+            ];
+            dbHelper.ExecuteNonQuery(updateReceiverQuery, CommandType.Text, updateReceiverParameters);
+
+            // Add check digit for the transfer
+            checkDigitDAL.AddCheckDigit("PointTransfers", "Id", transferId.ToString());
+            checkDigitDAL.RecalculateVerticalDigit("PointTransfers");
         }
     }
 }
