@@ -55,6 +55,27 @@ namespace DAL.Helper
             }
         }
 
+        public long ExecuteScalarLong(string query, CommandType commandType, SqlParameter[] parameters = null)
+        {
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.CommandType = commandType;
+
+                    if (parameters != null)
+                    {
+                        command.Parameters.AddRange(parameters);
+                    }
+
+                    connection.Open();
+                    object result = command.ExecuteScalar();
+                    command.Parameters.Clear();
+                    return Convert.ToInt64(result ?? 0);
+                }
+            }
+        }
+
         public string? ExecuteScalarString(string query, CommandType commandType, SqlParameter[] parameters = null)
         {
             using (SqlConnection connection = new SqlConnection(connectionString))
