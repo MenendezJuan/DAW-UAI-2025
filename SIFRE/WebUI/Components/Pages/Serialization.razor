@@ -1,0 +1,166 @@
+@page "/serializacion"
+@rendermode InteractiveServer
+@using BE.DTO
+@using Infrastructure.Session
+@using System.Text
+@inject WebUI.Services.ISerializationService SerializationService
+@inject IProductBLL ProductBLL
+@inject IJSRuntime JS
+
+<PageTitle>Importar/Exportar</PageTitle>
+
+@if (!IsAuthenticated)
+{
+    <p>Redirigiendo al inicio de sesión...</p>
+}
+else
+{
+    <h3>Importar / Exportar JSON / XML</h3>
+    <div class="mb-3">
+        <label class="form-label">Formato</label>
+        <select class="form-select" @bind=SelectedFormat>
+            <option value="json">JSON</option>
+            <option value="xml">XML</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Entidad</label>
+        <select class="form-select" @bind=SelectedEntity>
+            <option value="products">Productos</option>
+        </select>
+    </div>
+
+    <div class="d-flex gap-2 mb-4">
+        <button type="button" class="btn btn-primary" @onclick=ExportData>Exportar</button>
+        <input type="file" @onchange=OnFileSelected id="fileInput" class="form-control" />
+        <button type="button" class="btn btn-success" @onclick=ImportData>Importar</button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(StatusMessage))
+    {
+        <div class="alert alert-info">@StatusMessage</div>
+    }
+}
+
+@code {
+    [Inject] private NavigationManager Navigation { get; set; }
+
+    private bool IsAuthenticated => SingletonSession.Instancia?.User != null;
+    private string SelectedFormat { get; set; } = "json";
+    private string SelectedEntity { get; set; } = "products";
+    private byte[]? SelectedFileBytes { get; set; }
+    private string? SelectedFileName { get; set; }
+    private string? StatusMessage { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (!IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+
+    private async Task ExportData()
+    {
+        try
+        {
+            if (SelectedEntity == "products")
+            {
+                var itemsIList = ProductBLL.GetProducts(isBenefit: false, showAll: true);
+                var items = new List<ProductDTO>(itemsIList);
+
+                string content = SelectedFormat == "xml"
+                    ? SerializationService.SerializeToXml(items)
+                    : SerializationService.SerializeToJson(items);
+
+                var url = SelectedFormat == "xml" ? "/api/export/products/xml" : "/api/export/products/json";
+                await JS.InvokeVoidAsync("eval", $"window.location.href='{url}'");
+                StatusMessage = "Exportación iniciada";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error al exportar: {ex.Message}";
+        }
+    }
+
+    private async Task OnFileSelected(ChangeEventArgs e)
+    {
+        try
+        {
+            var files = (Microsoft.AspNetCore.Components.Forms.InputFileChangeEventArgs?)null;
+        }
+        catch { }
+
+        // Fallback manual using JS to read file as base64
+        // We will use <input type="file"> element with id and JS interop to read
+        // For simplicity, we read on ImportData via a separate JS call if needed.
+        SelectedFileBytes = null;
+        StatusMessage = "Archivo seleccionado. Presione Importar.";
+    }
+
+    private async Task ImportData()
+    {
+        try
+        {
+            // Leer archivo desde input via JS como texto
+            var result = await JS.InvokeAsync<string>("readFileText", "fileInput");
+            if (string.IsNullOrWhiteSpace(result))
+            {
+                StatusMessage = "No se pudo leer el archivo.";
+                return;
+            }
+
+            var detected = SerializationService.DetectFormat(result);
+            var format = SelectedFormat == "json" || SelectedFormat == "xml" ? SelectedFormat : detected;
+
+            if (SelectedEntity == "products")
+            {
+                List<ProductDTO>? items = null;
+                if (format == "xml")
+                {
+                    items = SerializationService.DeserializeFromXml<List<ProductDTO>>(result);
+                }
+                else
+                {
+                    items = SerializationService.DeserializeFromJson<List<ProductDTO>>(result);
+                }
+
+                if (items == null || items.Count == 0)
+                {
+                    StatusMessage = "El archivo no contiene datos.";
+                    return;
+                }
+
+                int imported = 0;
+                foreach (var it in items)
+                {
+                    try
+                    {
+                        ProductBLL.AddProduct(it);
+                        imported++;
+                    }
+                    catch
+                    {
+                        // continuar
+                    }
+                }
+                StatusMessage = $"Importación completada. Items importados: {imported}.";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error al importar: {ex.Message}";
+        }
+    }
+
+    private async Task DownloadFile(string fileName, string content, string mimeType)
+    {
+        var bytes = Encoding.UTF8.GetBytes(content);
+        string base64 = Convert.ToBase64String(bytes);
+        await JS.InvokeVoidAsync("downloadFile", fileName, base64, mimeType);
+    }
+}
+
+

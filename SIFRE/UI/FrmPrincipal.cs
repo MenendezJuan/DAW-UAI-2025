@@ -9,8 +9,6 @@ using UI.Profiles;
 using UI.Mantainers;
 using UI.Points;
 using BE.DTO;
-using UI.Backup;
-using UI.Logs;
 using System.Runtime.InteropServices;
 using UI.Recognitions;
 using UI.Objectives;
@@ -28,17 +26,10 @@ namespace UI
         //Productos
         FrmViewProducts? frmViewProducts = null;
 
-        //Reportes
-        FrmEventsLogs? frmEventsLogs = null;
-        FrmProductsLogs? frmProductsLogs = null;
-        FrmObjectiveLogs? frmObjectiveLogs = null;
-        FrmRecognitionLogs? frmRecognitionLogs = null;
-
         //Admin
         FrmManageProfile? frmManageProfile = null;
         FrmManageLanguage? frmManageLanguage = null;
         FrmAddProducts? frmAddProducts = null;
-        FrmBackup? frmBackup = null;
         FrmConfigureRewardPolicies? frmConfigureRewardPolicies = null;
         FrmConfigureRecognitionCategories? frmConfigureRecognitionCategories = null;
         FrmManageNominationRules? frmManageNominationRules = null;
@@ -184,13 +175,6 @@ namespace UI
 
         private void CloseForms()
         {
-            //Admin Forms
-            if (frmBackup != null)
-            {
-                frmBackup.Dispose();
-                frmBackup.Close();
-                frmBackup = null;
-            }
             if (frmManageLanguage != null)
             {
                 frmManageLanguage.Dispose();
@@ -234,32 +218,6 @@ namespace UI
                 frmViewProducts.Dispose();
                 frmViewProducts.Close();
                 frmViewProducts = null;
-            }
-
-            //Reports Forms
-            if (frmProductsLogs != null)
-            {
-                frmProductsLogs.Dispose();
-                frmProductsLogs.Close();
-                frmProductsLogs = null;
-            }
-            if (frmEventsLogs != null)
-            {
-                frmEventsLogs.Dispose();
-                frmEventsLogs.Close();
-                frmEventsLogs = null;
-            }
-            if (frmObjectiveLogs != null)
-            {
-                frmObjectiveLogs.Dispose();
-                frmObjectiveLogs.Close();
-                frmObjectiveLogs = null;
-            }
-            if (frmRecognitionLogs != null)
-            {
-                frmRecognitionLogs.Dispose();
-                frmRecognitionLogs.Close();
-                frmRecognitionLogs = null;
             }
 
             //Points Forms
@@ -472,12 +430,6 @@ namespace UI
             lblTitle.Tag = button.Tag;
         }
 
-        // Admin
-        private void btnManageBackup_Click(object sender, EventArgs e)
-        {
-            OpenForm(ref frmBackup, sender, e);
-        }
-
         private void btnManageProducts_Click(object sender, EventArgs e)
         {
             OpenForm(ref frmAddProducts, sender, e);
@@ -508,25 +460,6 @@ namespace UI
             OpenForm(ref frmConfigureRewardPolicies, sender, e);
         }
 
-        // Reportes
-        private void btnReportProducts_Click(object sender, EventArgs e)
-        {
-            OpenForm(ref frmProductsLogs, sender, e);
-        }
-
-        private void btnReportEvents_Click(object sender, EventArgs e)
-        {
-            OpenForm(ref frmEventsLogs, sender, e);
-        }
-        private void btnGenerateRecognitionReport_Click(object sender, EventArgs e)
-        {
-            OpenForm(ref frmRecognitionLogs, sender, e);
-        }
-
-        private void btnObjectivesReport_Click(object sender, EventArgs e)
-        {
-            OpenForm(ref frmObjectiveLogs, sender, e);
-        }
 
         // Productos
         private void btnViewProducts_Click(object sender, EventArgs e)

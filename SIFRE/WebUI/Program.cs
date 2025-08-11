@@ -42,6 +42,7 @@ builder.Services.AddTransient<IObjectiveBLL, ObjectiveBLL>();
 builder.Services.AddTransient<IObjectiveDAL, ObjectiveDAL>();
 builder.Services.AddTransient<DatabaseHelper>();
 builder.Services.AddScoped<SingletonSession>();
+builder.Services.AddSingleton<WebUI.Services.ISerializationService, WebUI.Services.SerializationService>();
 
 DatabaseHelper.Configure(builder.Configuration.GetConnectionString("DefaultConnection"));
 

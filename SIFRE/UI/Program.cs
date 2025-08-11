@@ -9,8 +9,6 @@ using UI.Language;
 using UI.Profiles;
 using UI.Mantainers;
 using UI.Points;
-using UI.Backup;
-using UI.Logs;
 using UI.Security;
 using UI.Reports;
 using UI.Recognitions;
@@ -71,13 +69,9 @@ namespace UI
             services.AddTransient<FrmPoints>();
             services.AddTransient<FrmExchangePoints>();
             services.AddTransient<FrmViewProducts>();
-            services.AddTransient<FrmBackup>();
-            services.AddTransient<FrmEventsLogs>();
-            services.AddTransient<FrmProductsLogs>();
             services.AddTransient<FrmInconsistencyManagement>();
             services.AddTransient<FrmTransferPoints>();
             services.AddTransient<FrmExchangeBenefits>();
-            services.AddTransient<FrmObjectiveLogs>();
             services.AddTransient<FrmNominateCollaborator>();
             services.AddTransient<FrmReviewPendingNominations>();
             services.AddTransient<FrmCheckNominationStatus>();
@@ -87,8 +81,6 @@ namespace UI
             services.AddTransient<FrmManageNominationRules>();
             services.AddTransient<FrmConfigureRewardPolicies>();
             services.AddTransient<FrmConfigureRecognitionCategories>();
-            services.AddTransient<FrmRecognitionLogs>();
-            services.AddTransient<FrmObjectiveLogs>();
         }
     }
 }
